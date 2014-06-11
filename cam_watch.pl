@@ -8,7 +8,7 @@ my $lock = File::NFSLock->new($0, LOCK_EX|LOCK_NB);
 die "$0 is already running!\n" unless $lock;
 
 while (1) {
-$a= `/usr/bin/curl -s 'http://192.168.0.25:88/cgi-bin/CGIProxy.fcgi?cmd=getDevState&usr=epierre&pwd=tititoto' ` ;
+$a= `/usr/bin/curl -s 'http://192.168.0.25:88/cgi-bin/CGIProxy.fcgi?cmd=getDevState&usr=xxx&pwd=xxx' ` ;
 
 ($status)=($a=~/motionDetectAlarm>(\d)<\//);
 ($status_rec)=($a=~/record>(\d)<\//);

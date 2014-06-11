@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 #Get the recording status capabilities of the camera
 
-$a= `/usr/bin/curl -s 'http://192.168.0.25:88/cgi-bin/CGIProxy.fcgi?cmd=getMotionDetectConfig&usr=admin1&pwd=eadqcw21' ` ;
+$a= `/usr/bin/curl -s 'http://192.168.0.25:88/cgi-bin/CGIProxy.fcgi?cmd=getMotionDetectConfig&usr=admin&pwd=xxx' ` ;
 
 ($status_lnk)=($a=~/linkage>(\d)<\//);
 
