@@ -14,8 +14,8 @@ use Time::Piece;
 use feature     qw< unicode_strings >;
 
 
-my $COSM_API_KEY = '7W0c7m4H4Seb4kRIrI5NjQszYhD9IFVFKlmW7OHNvJqA5lyS';
-my $COSM_FEED = "140510344";
+my $COSM_API_KEY = 'xxx';
+my $COSM_FEED = "xxx";
 my $feed = { 'version' => '1.0.0', 'datastreams' => [] };
  
 # Create an HTTP client
