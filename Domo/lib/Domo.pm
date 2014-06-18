@@ -6,8 +6,10 @@ use Crypt::SSLeay;
 use utf8;
 use Time::Piece;
 use feature     qw< unicode_strings >;
+use JSON;
 
 our $VERSION = '0.1';
+set warnings => 1;
 
 set serializer => 'JSON'; 
 prefix undef;
@@ -25,10 +27,6 @@ get '/system' => sub {
  return {"id"=> "01:02:03:04:05:06","apiversion"=> 1};
 };
 
-get '/devices' => sub {
-	print "list all\n";
-
-};
 
 get '/devices/:deviceId/action/:actionName/:actionParam?' => sub {
 my $deviceId = params->{deviceId};
@@ -86,5 +84,41 @@ if ($actionName eq 'setStatus') {
    }
 };
 
+get '/devices' => sub {
+	my $feed={ "devices" => []};
+	my $trendsurl = "http://192.168.0.24:8080/json.htm?type=devices&filter=all&used=true&order=Name";
+	my $ua = LWP::UserAgent->new();
+	$ua->agent("Some/string");
+	my $json = $ua->get( $trendsurl );
+	warn "Could not get $trendsurl!" unless defined $json;
+	# Decode the entire JSON
+	my $decoded = JSON->new->utf8(0)->decode( $json->decoded_content );
+	my @results = @{ $decoded->{'result'} };
+	foreach my $f ( @results ) {
+		 if ($f->{"SwitchType"}) {
+			#print $f->{"idx"} . " " . $f->{"Name"} . " " . $f->{"Status"} . $f->{"LastUpdate"}."\n";
+			my $dt = Time::Piece->strptime($f->{"LastUpdate"},"%Y-%m-%d %H:%M:%S");
+			my $name=$f->{"Name"};
+			$name=~s/\s/_/;
+			$name=~s/\s/_/;
+			$name=~s/\//_/;
+			$name=~s/%/P/;
+			$name.="_E";
+			my $bl=$f->{"Status"};my $rbl;
+			if ($bl eq "On") { $rbl=1;}
+			elsif ($bl eq "Off") { $rbl=0;}
+			else { $rbl=$bl;}
+			#print "L0 $name/$rbl/".$dt->datetime."\n";
+
+			my $feeds={"id" => $f->{"idx"}, "name" => $name, "type" => "DevSwitch", "room" => "noroom", params =>[]};
+			push (@{$feeds->{'params'}}, {"key" => "Status", "value" =>$bl} );
+			push (@{$feed->{'devices'}}, $feeds );
+		};
+
+	};
+
+	return($feed);
+	return { success => true};
+};
 
 true;
