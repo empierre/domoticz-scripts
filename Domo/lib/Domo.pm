@@ -47,7 +47,7 @@ if ($actionName eq 'setStatus') {
 	} else {
 		$action="On";
 	}
-	my $url="http://192.168.0.24:8080/json.htm?type=command&param=switchlight&idx=$deviceId&switchcmd=$action&level=0&passcode=";
+	my $url=config->{domo_path}."/json.htm?type=command&param=switchlight&idx=$deviceId&switchcmd=$action&level=0&passcode=";
 	my $browser = LWP::UserAgent->new;
 	my $response = $browser->get($url);
 	if ($response->is_success){ 
@@ -92,7 +92,8 @@ if ($actionName eq 'setStatus') {
 
 get '/devices' => sub {
 	my $feed={ "devices" => []};
-	my $system_url = "http://192.168.0.24:8080/json.htm?type=devices&filter=all&used=true&order=Name";
+	my $system_url = config->{domo_path}."/json.htm?type=devices&filter=all&used=true&order=Name";
+debug($system_url);
 	my $ua = LWP::UserAgent->new();
 	$ua->agent("MyDomoREST/$VERSION");
 	my $json = $ua->get( $system_url );
@@ -107,17 +108,61 @@ get '/devices' => sub {
 			$name=~s/\s/_/;
 			$name=~s/\//_/;
 			$name=~s/%/P/;
-		 if ($f->{"SwitchType"}) {
+		 if ($f->{"SwitchType"}) {			
 			#print $f->{"idx"} . " " . $f->{"Name"} . " " . $f->{"Status"} . $f->{"LastUpdate"}."\n";
 			$name.="_E";
 			my $bl=$f->{"Status"};my $rbl;
 			if ($bl eq "On") { $rbl=1;}
 			elsif ($bl eq "Off") { $rbl=0;}
+			elsif ($bl eq "Opened") { $rbl=1;}
+			elsif ($bl eq "Closed") { $rbl=0;}
 			else { $rbl=$bl;}
+			if ($f->{"SwitchType"} eq "On/Off") {
+				my $feeds={"id" => $f->{"idx"}, "name" => $name, "type" => "DevSwitch", "room" => "Switches", params =>[]};
+				push (@{$feeds->{'params'}}, {"key" => "Status", "value" =>"$rbl"} );
+				push (@{$feed->{'devices'}}, $feeds );
+			} elsif ($f->{"SwitchType"} eq "Dimmer") {
+				#DevDimmer	Dimmable light
+				#Status	Current status : 1 = On / 0 = Off	N/A
+				#Level	Current dim level (0-100)	%
+				#"idx" : "3", "Name" : "Alerte",  "Level" : 0,  "SwitchType" : "Dimmer",  "Status" : "Off","LastUpdate" : "2014-03-18 22:17:18"
+				my $feeds={"id" => $f->{"idx"}, "name" => $name, "type" => "DevDimmer", "room" => "Switches", params =>[]};
 
-			my $feeds={"id" => $f->{"idx"}, "name" => $name, "type" => "DevSwitch", "room" => "Switches", params =>[]};
-			push (@{$feeds->{'params'}}, {"key" => "Status", "value" =>"$rbl"} );
-			push (@{$feed->{'devices'}}, $feeds );
+				push (@{$feeds->{'params'}}, {"key" => "Status", "value" =>"$rbl"} );
+				push (@{$feeds->{'params'}}, {"key" => "Level", "value" => $f->{"Level"} } );
+
+				push (@{$feed->{'devices'}}, $feeds );
+			} elsif ($f->{"SwitchType"} eq "Motion Sensor") {
+				#DevMotion	Motion security sensor
+				#Status	Current status : 1 = On / 0 = Off	N/A
+				my $feeds={"id" => $f->{"idx"}, "name" => $name, "type" => "DevMotion", "room" => "Switches", params =>[]};
+				push (@{$feeds->{'params'}}, { "key" => "Armable", "value" => "0" } );
+				push (@{$feeds->{'params'}}, { "key" => "Ackable", "value" => "0" } );
+				push (@{$feeds->{'params'}}, { "key" => "Armed", "value" => "1" } );
+				push (@{$feeds->{'params'}}, { "key" => "Tripped", "value" => $rbl });
+				push (@{$feed->{'devices'}}, $feeds );
+			} elsif ($f->{"SwitchType"} eq "Door Lock") {
+				#DevLock	Door / window lock
+				#Status	Current status : 1 = On / 0 = Off	N/A
+				my $feeds={"id" => $f->{"idx"}, "name" => $name, "type" => "DevLock", "room" => "Switches", params =>[]};
+				push (@{$feeds->{'params'}}, {"key" => "Status", "value" =>"$rbl"} );
+				push (@{$feed->{'devices'}}, $feeds );
+			}elsif ($f->{"SwitchType"} eq "Smoke Detector") {
+				#DevSmoke	Smoke security sensor
+				#Armable	Ability to arm the device : 1 = Yes / 0 = No	N/A
+				#Ackable	Ability to acknowledge alerts : 1 = Yes / 0 = No	N/A
+				#Armed	Current arming status : 1 = On / 0 = Off	N/A
+				#Tripped	Is the sensor tripped ? (0 = No - 1 = Tripped)	N/A				
+				my $feeds={"id" => $f->{"idx"}, "name" => $name, "type" => "DevSmoke", "room" => "Switches", params =>[]};
+				push (@{$feeds->{'params'}}, { "key" => "Armable", "value" => "0" } );
+				push (@{$feeds->{'params'}}, { "key" => "Ackable", "value" => "0" } );
+				push (@{$feeds->{'params'}}, { "key" => "Armed", "value" => "1" } );
+				push (@{$feeds->{'params'}}, { "key" => "Tripped", "value" => $rbl });
+				push (@{$feed->{'devices'}}, $feeds );				
+			}
+			#DevDoor	Door / window security sensor
+			#DevFlood	Flood security sensor
+			#DevCO2Alert	CO2 Alert sensor	
 		} else {
 			if ($f->{"Type"} eq "Energy") {
 				#DevElectricity Electricity consumption sensor
@@ -188,27 +233,51 @@ get '/devices' => sub {
 
 	}; 
 	#Get Scenes
-	$system_url="http://192.168.0.24:8080/json.htm?type=scenes";
+	$system_url=config->{domo_path}."/json.htm?type=scenes";
 	$json = $ua->get( $system_url );
 	warn "Could not get $system_url!" unless defined $json;
-	# Decode the entire JSON
-	$decoded = JSON->new->utf8(0)->decode( $json->decoded_content );
-	@results = @{ $decoded->{'result'} };
-	foreach my $f ( @results ) {
-			my $dt = Time::Piece->strptime($f->{"LastUpdate"},"%Y-%m-%d %H:%M:%S");
-debug($dt->strftime("%Y-%m-%d %H:%M:%S"));
-			my $name=$f->{"Name"};
-			$name=~s/\s/_/;
-			$name=~s/\s/_/;
-			$name=~s/\//_/;
-			$name=~s/%/P/;
-			#DevScene       Scene (launchable)
-			#LastRun        Date of last run        N/A
-			#"idx" : "3", "Name" : "Alerte", "Type" : "Scene", "LastUpdate" : "2014-03-18 22:17:18"
-			my $feeds={"id" => $f->{"idx"}, "name" => $name, "type" => "DevScene", "room" => "Scene", params =>[]};
-			my $v=$dt->strftime("%Y-%m-%d %H:%M:%S");
-			push (@{$feeds->{'params'}}, {"key" => "LastRun", "value" => "$v"} );
-			push (@{$feed->{'devices'}}, $feeds );
+	if ($json) {
+		# Decode the entire JSON
+		$decoded = JSON->new->utf8(0)->decode( $json->decoded_content );
+		@results = @{ $decoded->{'result'} };
+		foreach my $f ( @results ) {
+				my $dt = Time::Piece->strptime($f->{"LastUpdate"},"%Y-%m-%d %H:%M:%S");
+#	debug($dt->strftime("%Y-%m-%d %H:%M:%S"));
+				my $name=$f->{"Name"};
+				$name=~s/\s/_/;
+				$name=~s/\s/_/;
+				$name=~s/\//_/;
+				$name=~s/%/P/;
+				#DevScene       Scene (launchable)
+				#LastRun        Date of last run        N/A
+				#"idx" : "3", "Name" : "Alerte", "Type" : "Scene", "LastUpdate" : "2014-03-18 22:17:18"
+				my $feeds={"id" => $f->{"idx"}, "name" => $name, "type" => "DevScene", "room" => "Scene", params =>[]};
+				my $v=$dt->strftime("%Y-%m-%d %H:%M:%S");
+				push (@{$feeds->{'params'}}, {"key" => "LastRun", "value" => "$v"} );
+				push (@{$feed->{'devices'}}, $feeds );
+		}
+	}
+	#Get Camera
+	$system_url=config->{domo_path}."/json.htm?type=cameras";
+debug($system_url);
+	$json = $ua->get( $system_url );
+	warn "Could not get $system_url!" unless defined $json;
+	if ($json) {
+		# Decode the entire JSON
+		$decoded = JSON->new->utf8(0)->decode( $json->decoded_content );
+		@results = @{ $decoded->{'result'} };
+		foreach my $f ( @results ) {
+				my $name=$f->{"Name"};
+				$name=~s/\s/_/;
+				$name=~s/\s/_/;
+				$name=~s/\//_/;
+				$name=~s/%/P/;
+				my $feeds={"id" => $f->{"idx"}."_cam", "name" => $name, "type" => "DevCamera", "room" => "Switches", params =>[]};
+				my $v=$f->{"ImageURL"};
+				push (@{$feeds->{'params'}}, {"key" => "localjpegurl", "value" => "$v"} );
+#				push (@{$feeds->{'params'}}, {"key" => "remotejpegurl", "value" => "$v"} );
+				push (@{$feed->{'devices'}}, $feeds );
+		}
 	}
 	#DevGenericSensor      Generic sensor (any value)
 	#Value  Current value   N/A
@@ -220,3 +289,4 @@ debug($dt->strftime("%Y-%m-%d %H:%M:%S"));
 };
 
 true;
+

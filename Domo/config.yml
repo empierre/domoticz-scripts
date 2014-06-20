@@ -3,7 +3,7 @@
 # all the settings in this file will be loaded at Dancer's startup.
 
 # Your application's name
-appname: "Domo"
+appname: "Domoticz REST Gateway"
 
 # The default layout to use for your application (located in
 # views/layouts/main.tt)
@@ -27,3 +27,4 @@ template: "simple"
 #     start_tag: '[%'
 #     end_tag:   '%]'
 
+domo_path: "http://192.168.0.24:8080"
