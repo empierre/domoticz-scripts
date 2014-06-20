@@ -3,8 +3,9 @@ domoticz
 
 Bunch of Perl scripts for Domoticz
 
-- cam_*: scripts to manage Foscam HD through the new AIP
-- cosmodom4.pl: extract values from Domoticz to push them to Cosm/Xively
+- cam_*: scripts to manage Foscam HD through the new API
+- cosmodom4.pl: extract values from Domoticz to push them to Cosm/Xively see http://domoticz.com/wiki/Perl_for_Domoticz#Pachube_.2F_Cosm_.2F_Xively
 - gcal4.sh / script_time_gcal4.lua: Google Calendar for Domoticz
-- ping_by_ip.pl: externalized ping for Domoticz
-- mysensors-gw.pl: mysensor gateway to Domoticz or other platform that allow JSON interface
+- ping_by_ip.pl: externalized ping for Domoticz to use within CRON, see http://domoticz.com/wiki/Perl_for_Domoticz#Ping_several_machines
+- mysensors-gw.pl: mysensor gateway to Domoticz or other platform that allow JSON interface, see http://domoticz.com/wiki/Perl_for_Domoticz#Reading_serial_Porl_-_Arduino
+- DOMO/ REST Gateway between Domoticz and Imperihome see http://domoticz.com/wiki/ImperiHome
