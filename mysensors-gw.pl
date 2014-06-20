@@ -157,7 +157,7 @@ sub save_conf {
 }
 sub init_database {
 	my $dbh = DBI->connect(          
-	    "dbi:SQLite:dbname=mysensors.db", 
+	    "dbi:SQLite:dbname=mysensors.db?cache=shared", 
 	    "",                          
 	    "",                          
 	    { RaiseError => 1 },         
