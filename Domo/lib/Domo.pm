@@ -136,7 +136,10 @@ debug($system_url);
 				#DevMotion	Motion security sensor
 				#Status	Current status : 1 = On / 0 = Off	N/A
 				my $feeds={"id" => $f->{"idx"}, "name" => $name, "type" => "DevMotion", "room" => "Switches", params =>[]};
-				push (@{$feeds->{'params'}}, {"key" => "Status", "value" =>"$rbl"} );
+				push (@{$feeds->{'params'}}, { "key" => "Armable", "value" => "0" } );
+				push (@{$feeds->{'params'}}, { "key" => "Ackable", "value" => "0" } );
+				push (@{$feeds->{'params'}}, { "key" => "Armed", "value" => "1" } );
+				push (@{$feeds->{'params'}}, { "key" => "Tripped", "value" => $rbl });
 				push (@{$feed->{'devices'}}, $feeds );
 			} elsif ($f->{"SwitchType"} eq "Door Lock") {
 				#DevLock	Door / window lock
