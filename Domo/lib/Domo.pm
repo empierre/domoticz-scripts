@@ -47,7 +47,7 @@ if ($actionName eq 'setStatus') {
 	} else {
 		$action="On";
 	}
-	my $url="http://192.168.0.24:8080/json.htm?type=command&param=switchlight&idx=$deviceId&switchcmd=$action&level=0&passcode=";
+	my $url=config->{domo_path}."/json.htm?type=command&param=switchlight&idx=$deviceId&switchcmd=$action&level=0&passcode=";
 	my $browser = LWP::UserAgent->new;
 	my $response = $browser->get($url);
 	if ($response->is_success){ 
@@ -92,7 +92,7 @@ if ($actionName eq 'setStatus') {
 
 get '/devices' => sub {
 	my $feed={ "devices" => []};
-	my $system_url = "http://192.168.0.24:8080/json.htm?type=devices&filter=all&used=true&order=Name";
+	my $system_url = config->{domo_path}."/json.htm?type=devices&filter=all&used=true&order=Name";
 	my $ua = LWP::UserAgent->new();
 	$ua->agent("MyDomoREST/$VERSION");
 	my $json = $ua->get( $system_url );
@@ -222,7 +222,7 @@ get '/devices' => sub {
 
 	}; 
 	#Get Scenes
-	$system_url="http://192.168.0.24:8080/json.htm?type=scenes";
+	$system_url=config->{domo_path}."/json.htm?type=scenes";
 	$json = $ua->get( $system_url );
 	warn "Could not get $system_url!" unless defined $json;
 	# Decode the entire JSON
