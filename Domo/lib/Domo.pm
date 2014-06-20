@@ -107,17 +107,51 @@ get '/devices' => sub {
 			$name=~s/\s/_/;
 			$name=~s/\//_/;
 			$name=~s/%/P/;
-		 if ($f->{"SwitchType"}) {
+		 if ($f->{"SwitchType"}) {			
 			#print $f->{"idx"} . " " . $f->{"Name"} . " " . $f->{"Status"} . $f->{"LastUpdate"}."\n";
 			$name.="_E";
 			my $bl=$f->{"Status"};my $rbl;
 			if ($bl eq "On") { $rbl=1;}
 			elsif ($bl eq "Off") { $rbl=0;}
 			else { $rbl=$bl;}
-
-			my $feeds={"id" => $f->{"idx"}, "name" => $name, "type" => "DevSwitch", "room" => "Switches", params =>[]};
-			push (@{$feeds->{'params'}}, {"key" => "Status", "value" =>"$rbl"} );
-			push (@{$feed->{'devices'}}, $feeds );
+			if ($f->{"SwitchType"} eq "On/Off") {
+				my $feeds={"id" => $f->{"idx"}, "name" => $name, "type" => "DevSwitch", "room" => "Switches", params =>[]};
+				push (@{$feeds->{'params'}}, {"key" => "Status", "value" =>"$rbl"} );
+				push (@{$feed->{'devices'}}, $feeds );
+			} elsif ($f->{"SwitchType"} eq "Dimmer") {
+				#DevDimmer	Dimmable light
+				#Status	Current status : 1 = On / 0 = Off	N/A
+				#Level	Current dim level (0-100)	%
+				#"idx" : "3", "Name" : "Alerte",  "Level" : 0,  "SwitchType" : "Dimmer",  "Status" : "Off","LastUpdate" : "2014-03-18 22:17:18"
+				my $feeds={"id" => $f->{"idx"}, "name" => $name, "type" => "DevDimmer", "room" => "Switches", params =>[]};
+				push (@{$feeds->{'params'}}, {"key" => "Status", "value" =>"$rbl"},{"key" => "Level", "value" => $f->{"Level"} );
+				push (@{$feed->{'devices'}}, $feeds );
+			} elsif ($f->{"SwitchType"} eq "Motion Sensor") {
+				#DevMotion	Motion security sensor
+				#Status	Current status : 1 = On / 0 = Off	N/A
+				my $feeds={"id" => $f->{"idx"}, "name" => $name, "type" => "DevMotion", "room" => "Switches", params =>[]};
+				push (@{$feeds->{'params'}}, {"key" => "Status", "value" =>"$rbl"} );
+				push (@{$feed->{'devices'}}, $feeds );
+			} elsif ($f->{"SwitchType"} eq "Door Lock") {
+				#DevLock	Door / window lock
+				#Status	Current status : 1 = On / 0 = Off	N/A
+				my $feeds={"id" => $f->{"idx"}, "name" => $name, "type" => "DevLock", "room" => "Switches", params =>[]};
+				push (@{$feeds->{'params'}}, {"key" => "Status", "value" =>"$rbl"} );
+				push (@{$feed->{'devices'}}, $feeds );
+			}elsif ($f->{"SwitchType"} eq "Smoke Sensor") {
+				#DevSmoke	Smoke security sensor
+				#Armable	Ability to arm the device : 1 = Yes / 0 = No	N/A
+				#Ackable	Ability to acknowledge alerts : 1 = Yes / 0 = No	N/A
+				#Armed	Current arming status : 1 = On / 0 = Off	N/A
+				#Tripped	Is the sensor tripped ? (0 = No - 1 = Tripped)	N/A				
+				my $feeds={"id" => $f->{"idx"}, "name" => $name, "type" => "DevSmoke", "room" => "Switches", params =>[]};
+				push (@{$feeds->{'params'}}, [{ "key" => "Armable", "value" => "0" },{ "key" => "Ackable", "value" => "0" },
+							{ "key" => "Armed", "value" => "1" },{ "key" => "Tripped", "value" => $rbl } );
+				push (@{$feed->{'devices'}}, $feeds );				
+			}
+			#DevDoor	Door / window security sensor
+			#DevFlood	Flood security sensor
+			#DevCO2Alert	CO2 Alert sensor	
 		} else {
 			if ($f->{"Type"} eq "Energy") {
 				#DevElectricity Electricity consumption sensor
