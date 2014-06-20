@@ -236,24 +236,48 @@ debug($system_url);
 	$system_url=config->{domo_path}."/json.htm?type=scenes";
 	$json = $ua->get( $system_url );
 	warn "Could not get $system_url!" unless defined $json;
-	# Decode the entire JSON
-	$decoded = JSON->new->utf8(0)->decode( $json->decoded_content );
-	@results = @{ $decoded->{'result'} };
-	foreach my $f ( @results ) {
-			my $dt = Time::Piece->strptime($f->{"LastUpdate"},"%Y-%m-%d %H:%M:%S");
-debug($dt->strftime("%Y-%m-%d %H:%M:%S"));
-			my $name=$f->{"Name"};
-			$name=~s/\s/_/;
-			$name=~s/\s/_/;
-			$name=~s/\//_/;
-			$name=~s/%/P/;
-			#DevScene       Scene (launchable)
-			#LastRun        Date of last run        N/A
-			#"idx" : "3", "Name" : "Alerte", "Type" : "Scene", "LastUpdate" : "2014-03-18 22:17:18"
-			my $feeds={"id" => $f->{"idx"}, "name" => $name, "type" => "DevScene", "room" => "Scene", params =>[]};
-			my $v=$dt->strftime("%Y-%m-%d %H:%M:%S");
-			push (@{$feeds->{'params'}}, {"key" => "LastRun", "value" => "$v"} );
-			push (@{$feed->{'devices'}}, $feeds );
+	if ($json) {
+		# Decode the entire JSON
+		$decoded = JSON->new->utf8(0)->decode( $json->decoded_content );
+		@results = @{ $decoded->{'result'} };
+		foreach my $f ( @results ) {
+				my $dt = Time::Piece->strptime($f->{"LastUpdate"},"%Y-%m-%d %H:%M:%S");
+#	debug($dt->strftime("%Y-%m-%d %H:%M:%S"));
+				my $name=$f->{"Name"};
+				$name=~s/\s/_/;
+				$name=~s/\s/_/;
+				$name=~s/\//_/;
+				$name=~s/%/P/;
+				#DevScene       Scene (launchable)
+				#LastRun        Date of last run        N/A
+				#"idx" : "3", "Name" : "Alerte", "Type" : "Scene", "LastUpdate" : "2014-03-18 22:17:18"
+				my $feeds={"id" => $f->{"idx"}, "name" => $name, "type" => "DevScene", "room" => "Scene", params =>[]};
+				my $v=$dt->strftime("%Y-%m-%d %H:%M:%S");
+				push (@{$feeds->{'params'}}, {"key" => "LastRun", "value" => "$v"} );
+				push (@{$feed->{'devices'}}, $feeds );
+		}
+	}
+	#Get Camera
+	$system_url=config->{domo_path}."/json.htm?type=cameras";
+debug($system_url);
+	$json = $ua->get( $system_url );
+	warn "Could not get $system_url!" unless defined $json;
+	if ($json) {
+		# Decode the entire JSON
+		$decoded = JSON->new->utf8(0)->decode( $json->decoded_content );
+		@results = @{ $decoded->{'result'} };
+		foreach my $f ( @results ) {
+				my $name=$f->{"Name"};
+				$name=~s/\s/_/;
+				$name=~s/\s/_/;
+				$name=~s/\//_/;
+				$name=~s/%/P/;
+				my $feeds={"id" => $f->{"idx"}."_cam", "name" => $name, "type" => "DevCamera", "room" => "Switches", params =>[]};
+				my $v=$f->{"ImageURL"};
+				push (@{$feeds->{'params'}}, {"key" => "localjpegurl", "value" => "$v"} );
+#				push (@{$feeds->{'params'}}, {"key" => "remotejpegurl", "value" => "$v"} );
+				push (@{$feed->{'devices'}}, $feeds );
+		}
 	}
 	#DevGenericSensor      Generic sensor (any value)
 	#Value  Current value   N/A
