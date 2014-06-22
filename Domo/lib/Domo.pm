@@ -8,8 +8,8 @@ use Time::Piece;
 use feature     qw< unicode_strings >;
 #use JSON;
 
-our $VERSION = '0.1';
-set warnings => 1;
+our $VERSION = '0.2';
+set warnings => 0;
 
 set serializer => 'JSON'; 
 prefix undef;
@@ -173,6 +173,7 @@ debug($system_url);
 				my ($total)= ($f->{"Data"} =~ /(\d+) kWh/);
 				my $feeds={"id" => $f->{"idx"}, "name" => $name, "type" => "DevElectricity", "room" => "Utility", params =>[]};
 				push (@{$feeds->{'params'}}, {"key" => "Watts", "value" =>$usage, "unit" => "W"} );
+				 push (@{$feeds->{'params'}}, {"key" => "ConsoTotal", "value" =>$total, "unit" => "kWh"} );
 				push (@{$feed->{'devices'}}, $feeds );
 			}  elsif (($f->{"Type"} =~ "Temp")||($f->{"Type"} =~ "Humidity"))  {
 				my @type=split(/ \+ /,$f->{"Type"});
@@ -250,8 +251,8 @@ debug($system_url);
 				$name=~s/%/P/;
 				#DevScene       Scene (launchable)
 				#LastRun        Date of last run        N/A
-				#"idx" : "3", "Name" : "Alerte", "Type" : "Scene", "LastUpdate" : "2014-03-18 22:17:18"
-				my $feeds={"id" => $f->{"idx"}, "name" => $name, "type" => "DevScene", "room" => "Scene", params =>[]};
+				#"idx" : "3", "Name" : "Alerte", "Type" : "Scenes", "LastUpdate" : "2014-03-18 22:17:18"
+				my $feeds={"id" => $f->{"idx"}, "name" => $name, "type" => "DevScene", "room" => "Scenes", params =>[]};
 				my $v=$dt->strftime("%Y-%m-%d %H:%M:%S");
 				push (@{$feeds->{'params'}}, {"key" => "LastRun", "value" => "$v"} );
 				push (@{$feed->{'devices'}}, $feeds );
