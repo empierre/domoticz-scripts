@@ -144,8 +144,11 @@ debug($system_url);
 			} elsif ($f->{"SwitchType"} eq "Door Lock") {
 				#DevLock	Door / window lock
 				#Status	Current status : 1 = On / 0 = Off	N/A
-				my $feeds={"id" => $f->{"idx"}, "name" => $name, "type" => "DevLock", "room" => "Switches", params =>[]};
-				push (@{$feeds->{'params'}}, {"key" => "Status", "value" =>"$rbl"} );
+				my $feeds={"id" => $f->{"idx"}, "name" => $name, "type" => "DevDoor", "room" => "Switches", params =>[]};
+				push (@{$feeds->{'params'}}, { "key" => "Armable", "value" => "0" } );
+				push (@{$feeds->{'params'}}, { "key" => "Ackable", "value" => "0" } );
+				push (@{$feeds->{'params'}}, { "key" => "Armed", "value" => "1" } );
+				push (@{$feeds->{'params'}}, { "key" => "Tripped", "value" => $rbl });
 				push (@{$feed->{'devices'}}, $feeds );
 			}elsif ($f->{"SwitchType"} eq "Smoke Detector") {
 				#DevSmoke	Smoke security sensor
@@ -170,7 +173,7 @@ debug($system_url);
 				#ConsoTotal     Current total consumption       kWh
 				#"Type" : "Energy", "SubType" : "CM180", "Usage" : "408 Watt", "Data" : "187.054 kWh"
 				my ($usage)= ($f->{"Usage"} =~ /(\d+) Watt/);
-				my ($total)= ($f->{"Data"} =~ /(\d+) kWh/);
+				my ($total)= ($f->{"Data"} =~ /(\d+).\d+ kWh/);
 				my $feeds={"id" => $f->{"idx"}, "name" => $name, "type" => "DevElectricity", "room" => "Utility", params =>[]};
 				push (@{$feeds->{'params'}}, {"key" => "Watts", "value" =>$usage, "unit" => "W"} );
 				 push (@{$feeds->{'params'}}, {"key" => "ConsoTotal", "value" =>$total, "unit" => "kWh"} );
