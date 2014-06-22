@@ -173,6 +173,7 @@ debug($system_url);
 				my ($total)= ($f->{"Data"} =~ /(\d+) kWh/);
 				my $feeds={"id" => $f->{"idx"}, "name" => $name, "type" => "DevElectricity", "room" => "Utility", params =>[]};
 				push (@{$feeds->{'params'}}, {"key" => "Watts", "value" =>$usage, "unit" => "W"} );
+				push (@{$feeds->{'params'}}, {"key" => "ConsoTotal", "value" =>$total, "unit" => "kWh"} );
 				push (@{$feed->{'devices'}}, $feeds );
 			}  elsif (($f->{"Type"} =~ "Temp")||($f->{"Type"} =~ "Humidity"))  {
 				my @type=split(/ \+ /,$f->{"Type"});
