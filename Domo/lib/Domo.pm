@@ -6,7 +6,7 @@ use Crypt::SSLeay;
 use utf8;
 use Time::Piece;
 use feature     qw< unicode_strings >;
-use JSON;
+#use JSON;
 
 our $VERSION = '0.1';
 set warnings => 1;
