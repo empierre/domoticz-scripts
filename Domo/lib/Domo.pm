@@ -142,6 +142,10 @@ debug($system_url);
 				my $feeds={"id" => $f->{"idx"}, "name" => $name, "type" => "DevSwitch", "room" => "Switches", params =>[]};
 				push (@{$feeds->{'params'}}, {"key" => "Status", "value" =>"$rbl"} );
 				push (@{$feed->{'devices'}}, $feeds );
+			} elsif (($f->{"SwitchType"} eq "Push On Button")or($f->{"SwitchType"} eq "Push Off Button")) {
+				my $feeds={"id" => $f->{"idx"}, "name" => $name, "type" => "DevSwitch", "room" => "Switches", params =>[]};
+				push (@{$feeds->{'params'}}, {"key" => "Status", "value" =>"$rbl"} );
+				push (@{$feed->{'devices'}}, $feeds );
 			} elsif ($f->{"SwitchType"} eq "Dimmer") {
 				#DevDimmer	Dimmable light
 				#Status	Current status : 1 = On / 0 = Off	N/A
