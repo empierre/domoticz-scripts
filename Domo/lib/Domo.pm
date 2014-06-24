@@ -8,7 +8,7 @@ use Time::Piece;
 use feature     qw< unicode_strings >;
 #use JSON;
 
-our $VERSION = '0.2';
+our $VERSION = '0.3';
 set warnings => 0;
 
 set serializer => 'JSON'; 
@@ -40,14 +40,16 @@ my $actionName = params->{actionName};
 my $actionParam = params->{actionParam}||"";
 
 if ($actionName eq 'setStatus') {
+debug("actionParam=".$actionParam."\n");
         #setStatus	0/1
 	my $action;
-	if ($actionParam eq 0) {
-		$action="Off";
-	} else {
+	if ($actionParam) {
 		$action="On";
+	} else {
+		$action="Off";
 	}
 	my $url=config->{domo_path}."/json.htm?type=command&param=switchlight&idx=$deviceId&switchcmd=$action&level=0&passcode=";
+debug($url);
 	my $browser = LWP::UserAgent->new;
 	my $response = $browser->get($url);
 	if ($response->is_success){ 
@@ -129,6 +131,15 @@ debug($system_url);
 				my $feeds={"id" => $f->{"idx"}, "name" => $name, "type" => "DevDimmer", "room" => "Switches", params =>[]};
 
 				push (@{$feeds->{'params'}}, {"key" => "Status", "value" =>"$rbl"} );
+				push (@{$feeds->{'params'}}, {"key" => "Level", "value" => $f->{"Level"} } );
+
+				push (@{$feed->{'devices'}}, $feeds );
+			} elsif ($f->{"SwitchType"} eq "Blinds Percentage") {
+				#DevShutter
+
+				my $feeds={"id" => $f->{"idx"}, "name" => $name, "type" => "DevDimmer", "room" => "Switches", params =>[]};
+				push (@{$feeds->{'params'}}, {"key" => "stopable", "value" =>"0"} );
+				push (@{$feeds->{'params'}}, {"key" => "pulseable", "value" =>"0"} );
 				push (@{$feeds->{'params'}}, {"key" => "Level", "value" => $f->{"Level"} } );
 
 				push (@{$feed->{'devices'}}, $feeds );
@@ -253,6 +264,12 @@ debug($system_url);
 				my $feeds={"id" => $f->{"idx"}, "name" => $name, "type" => "DevUV", "room" => "Temp", params =>[]};
 				my $v=$f->{"UVI"};
 				push (@{$feeds->{'params'}}, {"key" => "Value", "value" => "$v"} );
+				push (@{$feed->{'devices'}}, $feeds );
+			} elsif ($f->{"Type"} eq "Lux")  {
+				#DevLux  UV sensor
+				my $feeds={"id" => $f->{"idx"}, "name" => $name, "type" => "DevLuminosity", "room" => "Temp", params =>[]};
+				my ($v)=($f->{"Data"}=~/\d+ Lux/);
+				push (@{$feeds->{'params'}}, {"key" => "Value", "value" => "$v"}, "unit" => "lux");
 				push (@{$feed->{'devices'}}, $feeds );
 			}
 
