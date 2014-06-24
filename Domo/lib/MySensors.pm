@@ -1,4 +1,4 @@
-package MySensors;
+package Domo;
 use Dancer ':syntax';
 use DBI;
 use File::Spec;
@@ -66,14 +66,23 @@ get '/message/:radioId/:childId/:messageType/:subType/:payload?' => sub {
 
 		if ($subType==5) {
 		#Gives a new node its ID
-           	 my $msg = "$radioId;$childId;4;5;1\n";
-             my $co = $ob->write($msg);
-             if (!$co) {
+			my $db = connect_db();
+			my $sql = 'insert into device (I_BATTERY_LEVEL,I_RELAY_NODE,I_UNIT) values (100,255,'M')';
+			my $sth = $db->prepare($sql) or die $db->errstr;
+			$sth->execute or die $sth->errstr;
+			#get the id
+			my $sql = 'SELECT last_insert_rowid() FROM device';
+			my $sth = $db->prepare($sql) or die $db->errstr;
+			$sth->execute or die $sth->errstr;
+			my $row;my $id;while($row = $sth->fetchrow_hashref()) { $id=$row->{id};}			
+           	my $msg = "$radioId;$childId;4;5;$id\n";
+            my $co = $ob->write($msg);
+            if (!$co) {
 					status 'error';
 					return { success => false, errormsg => "USB write failed"};					
-			 }
-             $ob->write_drain;
-			 return { success => true};					
+			}
+            $ob->write_drain;
+			return { success => true};					
 		}
 		if ($subType==9) {
 		#I_PING
@@ -118,10 +127,16 @@ get '/message/:radioId/:childId/:messageType/:subType/:payload?' => sub {
 	} elsif ($messageType==3) {
 	#Variable Acknowledgments	
 	} elsif ($messageType==0) {
-	#Presentation
-	
+	#Presentation	
 	#1 255 0 17 1.3b3 (67f4ca1)
-	
+	#S_ARDUINO_NODE		17	Arduino node device
+	#S_ARDUINO_RELAY	18	Arduino relaying node device
+	if ($subType==17) {
+		my $db = connect_db();
+		my $sql = 'insert into sensor (device_id, subtype,version) values (?, ?, ?)';
+		my $sth = $db->prepare($sql) or die $db->errstr;
+		$sth->execute($radioId, ) or die $sth->errstr;
+	}	
 	}
 };
 
