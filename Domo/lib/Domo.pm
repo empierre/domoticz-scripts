@@ -34,7 +34,7 @@ get '/system' => sub {
 };
 
 
-get '/devices/:deviceId/action/:actionName/:actionParam?' => sub {
+get '/devices/:deviceId/action/:actionName/?:actionParam?' => sub {
 my $deviceId = params->{deviceId};
 my $actionName = params->{actionName};
 my $actionParam = params->{actionParam}||"";
@@ -69,7 +69,16 @@ debug($url);
 } elsif ($actionName eq 'setLevel') {
 	#setLevel	0-100
 	#/json.htm?type=command&param=switchlight&idx=&switchcmd=Set%20Level&level=6
-	return { success => true};
+	my $url=config->{domo_path}."/json.htm?type=command&param=switchlight&idx=$deviceId&switchcmd=Set%20Level&level=$actionParam&passcode=";
+debug($url);
+	my $browser = LWP::UserAgent->new;
+	my $response = $browser->get($url);
+	if ($response->is_success){ 
+		return { success => true};
+	} else {
+		status 'error';
+		return { success => false, errormsg => $response->status_line};
+	}
 } elsif ($actionName eq 'stopShutter') {
 	#stopShutter
 	status 'error';
@@ -81,6 +90,16 @@ debug($url);
 } elsif ($actionName eq 'launchScene') {
 	#launchScene
 	#/json.htm?type=command&param=switchscene&idx=&switchcmd=
+	my $url=config->{domo_path}."/json.htm?type=command&param=switchscene&idx=$deviceId&switchcmd=On&passcode=";
+debug($url);
+	my $browser = LWP::UserAgent->new;
+	my $response = $browser->get($url);
+	if ($response->is_success){ 
+		return { success => true};
+	} else {
+		status 'error';
+		return { success => false, errormsg => $response->status_line};
+	}
 	return { success => true};
 } elsif ($actionName eq 'setChoice') {
 	#setChoice string
@@ -138,11 +157,26 @@ debug($system_url);
 				#DevShutter
 
 				my $feeds={"id" => $f->{"idx"}, "name" => $name, "type" => "DevDimmer", "room" => "Switches", params =>[]};
-				push (@{$feeds->{'params'}}, {"key" => "stopable", "value" =>"0"} );
+				my $v=$f->{"Level"};
+				push (@{$feeds->{'params'}}, {"key" => "stopable", "value" =>"1"} );
 				push (@{$feeds->{'params'}}, {"key" => "pulseable", "value" =>"0"} );
-				push (@{$feeds->{'params'}}, {"key" => "Level", "value" => $f->{"Level"} } );
+				push (@{$feeds->{'params'}}, {"key" => "Level", "value" => "$v" } );
 
 				push (@{$feed->{'devices'}}, $feeds );
+			} elsif ($f->{"SwitchType"} eq "Blinds") {
+				#DevShutter
+				my $feeds={"id" => $f->{"idx"}, "name" => $name, "type" => "DevDimmer", "room" => "Switches", params =>[]};
+				my $v=$f->{"Level"};
+				push (@{$feeds->{'params'}}, {"key" => "stopable", "value" =>"0"} );
+				push (@{$feeds->{'params'}}, {"key" => "pulseable", "value" =>"0"} );
+				push (@{$feeds->{'params'}}, {"key" => "Level", "value" => "$v" } );
+			} elsif ($f->{"SwitchType"} eq "Blinds Inverted") {
+				#DevShutter
+				my $feeds={"id" => $f->{"idx"}, "name" => $name, "type" => "DevDimmer", "room" => "Switches", params =>[]};
+				my $v=$f->{"Level"};
+				push (@{$feeds->{'params'}}, {"key" => "stopable", "value" =>"0"} );
+				push (@{$feeds->{'params'}}, {"key" => "pulseable", "value" =>"0"} );
+				push (@{$feeds->{'params'}}, {"key" => "Level", "value" => "$v" } );
 			} elsif ($f->{"SwitchType"} eq "Motion Sensor") {
 				#DevMotion	Motion security sensor
 				#Status	Current status : 1 = On / 0 = Off	N/A
