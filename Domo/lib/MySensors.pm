@@ -1,19 +1,26 @@
 package Domo;
 use Dancer ':syntax';
+use DBI;
+use File::Spec;
 use File::Slurp;
 use LWP::UserAgent;
 use Crypt::SSLeay;
 use utf8;
 use Time::Piece;
+use Device::SerialPort;
+use IO::Handle;
 use feature     qw< unicode_strings >;
-use POSIX qw(ceil);
 #use JSON;
 
-our $VERSION = '0.3';
+our $VERSION = '0.2';
 set warnings => 0;
+set 'database'     => File::Spec->catfile(File::Spec->tmpdir(), 'mysensors.db');
+
 
 set serializer => 'JSON'; 
 prefix undef;
+# USB port opening
+my $ob = &connect_usb(config->{usb_port});
 
 get '/' => sub {
     template 'index';
@@ -35,22 +42,113 @@ get '/system' => sub {
 };
 
 
-get '/devices/:deviceId/action/:actionName/?:actionParam?' => sub {
+get '/devices/:deviceId/action/:actionName/:actionParam?' => sub {
 my $deviceId = params->{deviceId};
 my $actionName = params->{actionName};
 my $actionParam = params->{actionParam}||"";
+}
+
+get '/message/:radioId/:childId/:messageType/:subType/:payload?' => sub {
+	my $radioId = params->{radioId};
+	my $childId = params->{childId};
+	my $messageType = params->{messageType};
+	my $subType = params->{subType};
+	my $payload = params->{payload}||"0";
+
+	my $dt = DateTime->now;
+	my $date=join ' ', $dt->ymd, $dt->hms;
+	 
+	
+	if ($messageType==4) {
+		#I_RELAY_NODE 		1 255 4 7 0 
+		#I_SKETCH_NAME 		1 255 4 14 Humidity
+		#I_SKETCH_VERSION 	1 255 4 15 1.0
+
+		if ($subType==5) {
+		#Gives a new node its ID
+			my $db = connect_db();
+			my $sql = 'insert into device (I_BATTERY_LEVEL,I_RELAY_NODE,I_UNIT) values (100,255,'M')';
+			my $sth = $db->prepare($sql) or die $db->errstr;
+			$sth->execute or die $sth->errstr;
+			#get the id
+			my $sql = 'SELECT last_insert_rowid() FROM device';
+			my $sth = $db->prepare($sql) or die $db->errstr;
+			$sth->execute or die $sth->errstr;
+			my $row;my $id;while($row = $sth->fetchrow_hashref()) { $id=$row->{id};}			
+           	my $msg = "$radioId;$childId;4;5;$id\n";
+            my $co = $ob->write($msg);
+            if (!$co) {
+					status 'error';
+					return { success => false, errormsg => "USB write failed"};					
+			}
+            $ob->write_drain;
+			return { success => true};					
+		}
+		if ($subType==9) {
+		#I_PING
+             my $msg = "$radioId;$childId;4;10;\n";
+             my $co = $ob->write($msg);
+             if (!$co) {
+					status 'error';
+					return { success => false, errormsg => "USB write failed"};					
+			 }
+             $ob->write_drain;
+			 return { success => true};					
+		}
+		if ($subType==13) {
+		#Answer we are Metric
+		#I_UNIT 			1 255 4 13 0
+             my $msg = "$radioId;$childId;4;13;M\n";
+             my $co = $ob->write($msg);
+             if (!$co) {
+					status 'error';
+					return { success => false, errormsg => "USB write failed"};					
+			 }
+             $ob->write_drain;
+			 return { success => true};					
+		}
+    } elsif ($messageType==1) {
+		$sensor_tab{$radioId}->{$subType}=$payload;
+		&update_sensor($radioId,$subType,$payload);
+		if($subType==0) {
+		# Read the Temp value
+	  		 my $hum=$sensor_tab{$radioId}->{1}||0;
+			 next if ($hum<=0);		
+			 `curl -s "http://$domo_ip:$domo_port/json.htm?type=command&param=udevice&idx=164&svalue=$payload;$hum;2" &`;
+			 return { success => true};					
+		}
+		if ($subType==1) {
+			# Read the Humidity value
+			my $temp=$sensor_tab{$radioId}->{0}||0;
+			next if ($temp<=0);
+			`curl -s "http://$domo_ip:$domo_port/json.htm?type=command&param=udevice&idx=164&svalue=$temp;$payload;2" &`;
+			return { success => true};					
+		} 
+	} elsif ($messageType==3) {
+	#Variable Acknowledgments	
+	} elsif ($messageType==0) {
+	#Presentation	
+	#1 255 0 17 1.3b3 (67f4ca1)
+	#S_ARDUINO_NODE		17	Arduino node device
+	#S_ARDUINO_RELAY	18	Arduino relaying node device
+	if ($subType==17) {
+		my $db = connect_db();
+		my $sql = 'insert into sensor (device_id, subtype,version) values (?, ?, ?)';
+		my $sth = $db->prepare($sql) or die $db->errstr;
+		$sth->execute($radioId, ) or die $sth->errstr;
+	}	
+	}
+};
 
 if ($actionName eq 'setStatus') {
-debug("actionParam=".$actionParam."\n");
         #setStatus	0/1
 	my $action;
-	if ($actionParam) {
-		$action="On";
-	} else {
+	if ($actionParam eq 0) {
 		$action="Off";
+	} else {
+		$action="On";
 	}
 	my $url=config->{domo_path}."/json.htm?type=command&param=switchlight&idx=$deviceId&switchcmd=$action&level=0&passcode=";
-debug($url);
 	my $browser = LWP::UserAgent->new;
 	my $response = $browser->get($url);
 	if ($response->is_success){ 
@@ -70,16 +168,7 @@ debug($url);
 } elsif ($actionName eq 'setLevel') {
 	#setLevel	0-100
 	#/json.htm?type=command&param=switchlight&idx=&switchcmd=Set%20Level&level=6
-	my $url=config->{domo_path}."/json.htm?type=command&param=switchlight&idx=$deviceId&switchcmd=Set%20Level&level=$actionParam&passcode=";
-debug($url);
-	my $browser = LWP::UserAgent->new;
-	my $response = $browser->get($url);
-	if ($response->is_success){ 
-		return { success => true};
-	} else {
-		status 'error';
-		return { success => false, errormsg => $response->status_line};
-	}
+	return { success => true};
 } elsif ($actionName eq 'stopShutter') {
 	#stopShutter
 	status 'error';
@@ -91,16 +180,6 @@ debug($url);
 } elsif ($actionName eq 'launchScene') {
 	#launchScene
 	#/json.htm?type=command&param=switchscene&idx=&switchcmd=
-	my $url=config->{domo_path}."/json.htm?type=command&param=switchscene&idx=$deviceId&switchcmd=On&passcode=";
-debug($url);
-	my $browser = LWP::UserAgent->new;
-	my $response = $browser->get($url);
-	if ($response->is_success){ 
-		return { success => true};
-	} else {
-		status 'error';
-		return { success => false, errormsg => $response->status_line};
-	}
 	return { success => true};
 } elsif ($actionName eq 'setChoice') {
 	#setChoice string
@@ -136,14 +215,10 @@ debug($system_url);
 			my $bl=$f->{"Status"};my $rbl;
 			if ($bl eq "On") { $rbl=1;}
 			elsif ($bl eq "Off") { $rbl=0;}
-			elsif ($bl eq "Open") { $rbl=1;}
+			elsif ($bl eq "Opened") { $rbl=1;}
 			elsif ($bl eq "Closed") { $rbl=0;}
 			else { $rbl=$bl;}
 			if ($f->{"SwitchType"} eq "On/Off") {
-				my $feeds={"id" => $f->{"idx"}, "name" => $name, "type" => "DevSwitch", "room" => "Switches", params =>[]};
-				push (@{$feeds->{'params'}}, {"key" => "Status", "value" =>"$rbl"} );
-				push (@{$feed->{'devices'}}, $feeds );
-			} elsif (($f->{"SwitchType"} eq "Push On Button")or($f->{"SwitchType"} eq "Push Off Button")) {
 				my $feeds={"id" => $f->{"idx"}, "name" => $name, "type" => "DevSwitch", "room" => "Switches", params =>[]};
 				push (@{$feeds->{'params'}}, {"key" => "Status", "value" =>"$rbl"} );
 				push (@{$feed->{'devices'}}, $feeds );
@@ -158,30 +233,6 @@ debug($system_url);
 				push (@{$feeds->{'params'}}, {"key" => "Level", "value" => $f->{"Level"} } );
 
 				push (@{$feed->{'devices'}}, $feeds );
-			} elsif ($f->{"SwitchType"} eq "Blinds Percentage") {
-				#DevShutter
-
-				my $feeds={"id" => $f->{"idx"}, "name" => $name, "type" => "DevDimmer", "room" => "Switches", params =>[]};
-				my $v=$f->{"Level"};
-				push (@{$feeds->{'params'}}, {"key" => "stopable", "value" =>"1"} );
-				push (@{$feeds->{'params'}}, {"key" => "pulseable", "value" =>"0"} );
-				push (@{$feeds->{'params'}}, {"key" => "Level", "value" => "$v" } );
-
-				push (@{$feed->{'devices'}}, $feeds );
-			} elsif ($f->{"SwitchType"} eq "Blinds") {
-				#DevShutter
-				my $feeds={"id" => $f->{"idx"}, "name" => $name, "type" => "DevDimmer", "room" => "Switches", params =>[]};
-				my $v=$f->{"Level"};
-				push (@{$feeds->{'params'}}, {"key" => "stopable", "value" =>"0"} );
-				push (@{$feeds->{'params'}}, {"key" => "pulseable", "value" =>"0"} );
-				push (@{$feeds->{'params'}}, {"key" => "Level", "value" => "$v" } );
-			} elsif ($f->{"SwitchType"} eq "Blinds Inverted") {
-				#DevShutter
-				my $feeds={"id" => $f->{"idx"}, "name" => $name, "type" => "DevDimmer", "room" => "Switches", params =>[]};
-				my $v=$f->{"Level"};
-				push (@{$feeds->{'params'}}, {"key" => "stopable", "value" =>"0"} );
-				push (@{$feeds->{'params'}}, {"key" => "pulseable", "value" =>"0"} );
-				push (@{$feeds->{'params'}}, {"key" => "Level", "value" => "$v" } );
 			} elsif ($f->{"SwitchType"} eq "Motion Sensor") {
 				#DevMotion	Motion security sensor
 				#Status	Current status : 1 = On / 0 = Off	N/A
@@ -223,20 +274,11 @@ debug($system_url);
 				#ConsoTotal     Current total consumption       kWh
 				#"Type" : "Energy", "SubType" : "CM180", "Usage" : "408 Watt", "Data" : "187.054 kWh"
 				my ($usage)= ($f->{"Usage"} =~ /(\d+) Watt/);
-				my ($total)= ($f->{"Data"} =~ /([0-9]+(?:\.[0-9]+)?)/);
-				$total=ceil($total);
+				my ($total)= ($f->{"Data"} =~ /(\d+).\d+ kWh/);
 				my $feeds={"id" => $f->{"idx"}, "name" => $name, "type" => "DevElectricity", "room" => "Utility", params =>[]};
 				push (@{$feeds->{'params'}}, {"key" => "Watts", "value" =>$usage, "unit" => "W"} );
 				 push (@{$feeds->{'params'}}, {"key" => "ConsoTotal", "value" =>$total, "unit" => "kWh"} );
 				push (@{$feed->{'devices'}}, $feeds );
-			} elsif ($f->{"Type"} eq "Usage") {
-				#DevElectricity Electricity consumption sensor
-				#Watts  Current consumption     Watt
-				#"Type" : "Usage", "SubType" : "Electric", "Data" : "122.3 Watt"
-				my ($total)= ($f->{"Data"} =~ /([0-9]+(?:\.[0-9]+)?)/);
-				$total=ceil($total);
-				my $feeds={"id" => $f->{"idx"}, "name" => $name, "type" => "DevElectricity", "room" => "Utility", params =>[]};
-				push (@{$feeds->{'params'}}, {"key" => "Watts", "value" =>$total, "unit" => "W"} );
 			} elsif ($f->{"Type"} eq "Current/Energy") {
 				#DevElectricity Electricity consumption sensor
 				#Watts  Current consumption     Watt
@@ -313,12 +355,6 @@ debug($system_url);
 				my $v=$f->{"UVI"};
 				push (@{$feeds->{'params'}}, {"key" => "Value", "value" => "$v"} );
 				push (@{$feed->{'devices'}}, $feeds );
-			} elsif ($f->{"Type"} eq "Lux")  {
-				#DevLux  UV sensor
-				my $feeds={"id" => $f->{"idx"}, "name" => $name, "type" => "DevLuminosity", "room" => "Temp", params =>[]};
-				my ($v)=($f->{"Data"}=~/(\d+) Lux/);
-				push (@{$feeds->{'params'}}, {"key" => "Value", "value" => "$v", "unit" => "lux"});
-				push (@{$feed->{'devices'}}, $feeds );
 			}
 
 		}
@@ -381,5 +417,34 @@ debug($system_url);
 	return { success => true};
 };
 
-true;
+sub connect_usb {
+	my $port=$_[0];
+	Device::SerialPort->new($port, 1) || die "Can't open $port: $ +!"; 
+	$ob = Device::SerialPort->new($port, 1) || die "Can't open $port: $ +!";
+	$ob->databits(8);
+	$ob->baudrate(115200);
+	$ob->parity("none");
+	$ob->stopbits(1);
+	$ob->buffers( 4096, 4096 );
+	$ob->write_settings();
+	return $ob;
+}
 
+  sub connect_db {
+    my $dbh = DBI->connect("dbi:SQLite:dbname=".setting('database')."?cache=shared", 
+	    "",                          
+	    "",                          
+	    { RaiseError => 1 }
+	) or die $DBI::errstr;
+
+    return $dbh;
+  }
+
+  sub init_db {
+    my $db = connect_db();
+    my $schema = read_file('./schema.sql');
+    $db->do($schema) or die $db->errstr;
+  }
+
+init_db();  
+true;
