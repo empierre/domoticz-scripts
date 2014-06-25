@@ -21,6 +21,9 @@ set serializer => 'JSON';
 prefix undef;
 # USB port opening
 my $ob = &connect_usb(config->{usb_port});
+my $domo_ip = config->{domo_ip};
+my $domo_port = config->{domo_port};
+my %sensor_tab;
 
 get '/' => sub {
     template 'index';
@@ -46,7 +49,7 @@ get '/devices/:deviceId/action/:actionName/:actionParam?' => sub {
 my $deviceId = params->{deviceId};
 my $actionName = params->{actionName};
 my $actionParam = params->{actionParam}||"";
-}
+};
 
 get '/message/:radioId/:childId/:messageType/:subType/:payload?' => sub {
 	my $radioId = params->{radioId};
@@ -67,12 +70,12 @@ get '/message/:radioId/:childId/:messageType/:subType/:payload?' => sub {
 		if ($subType==5) {
 		#Gives a new node its ID
 			my $db = connect_db();
-			my $sql = 'insert into device (I_BATTERY_LEVEL,I_RELAY_NODE,I_UNIT) values (100,255,'M')';
+			my $sql = "insert into device (I_BATTERY_LEVEL,I_RELAY_NODE,I_UNIT) values (100,255,'M')";
 			my $sth = $db->prepare($sql) or die $db->errstr;
 			$sth->execute or die $sth->errstr;
 			#get the id
-			my $sql = 'SELECT last_insert_rowid() FROM device';
-			my $sth = $db->prepare($sql) or die $db->errstr;
+			$sql = 'SELECT last_insert_rowid() FROM device';
+			$sth = $db->prepare($sql) or die $db->errstr;
 			$sth->execute or die $sth->errstr;
 			my $row;my $id;while($row = $sth->fetchrow_hashref()) { $id=$row->{id};}			
            	my $msg = "$radioId;$childId;4;5;$id\n";
@@ -131,14 +134,13 @@ get '/message/:radioId/:childId/:messageType/:subType/:payload?' => sub {
 	#1 255 0 17 1.3b3 (67f4ca1)
 	#S_ARDUINO_NODE		17	Arduino node device
 	#S_ARDUINO_RELAY	18	Arduino relaying node device
-	if ($subType==17) {
-		my $db = connect_db();
-		my $sql = 'insert into sensor (device_id, subtype,version) values (?, ?, ?)';
-		my $sth = $db->prepare($sql) or die $db->errstr;
-		$sth->execute($radioId, ) or die $sth->errstr;
-	}	
-	}
-};
+		if ($subType==17) {
+			my $db = connect_db();
+			my $sql = 'insert into sensor (device_id, subtype,version) values (?, ?, ?)';
+			my $sth = $db->prepare($sql) or die $db->errstr;
+			$sth->execute($radioId, ) or die $sth->errstr;
+		}	
+	};
 
 if ($actionName eq 'setStatus') {
         #setStatus	0/1
