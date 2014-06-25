@@ -306,7 +306,7 @@ debug($system_url);
 			} elsif ($f->{"Type"} eq "Lux")  {
 				#DevLux  UV sensor
 				my $feeds={"id" => $f->{"idx"}, "name" => $name, "type" => "DevLuminosity", "room" => "Temp", params =>[]};
-				my ($v)=($f->{"Data"}=~/\d+ Lux/);
+				my ($v)=($f->{"Data"}=~/(\d+) Lux/);
 				push (@{$feeds->{'params'}}, {"key" => "Value", "value" => "$v", "unit" => "lux"});
 				push (@{$feed->{'devices'}}, $feeds );
 			}
