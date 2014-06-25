@@ -135,7 +135,7 @@ debug($system_url);
 			my $bl=$f->{"Status"};my $rbl;
 			if ($bl eq "On") { $rbl=1;}
 			elsif ($bl eq "Off") { $rbl=0;}
-			elsif ($bl eq "Opened") { $rbl=1;}
+			elsif ($bl eq "Open") { $rbl=1;}
 			elsif ($bl eq "Closed") { $rbl=0;}
 			else { $rbl=$bl;}
 			if ($f->{"SwitchType"} eq "On/Off") {
