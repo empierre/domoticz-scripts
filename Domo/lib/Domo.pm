@@ -6,6 +6,7 @@ use Crypt::SSLeay;
 use utf8;
 use Time::Piece;
 use feature     qw< unicode_strings >;
+use POSIX qw(ceil);
 #use JSON;
 
 our $VERSION = '0.3';
@@ -222,11 +223,20 @@ debug($system_url);
 				#ConsoTotal     Current total consumption       kWh
 				#"Type" : "Energy", "SubType" : "CM180", "Usage" : "408 Watt", "Data" : "187.054 kWh"
 				my ($usage)= ($f->{"Usage"} =~ /(\d+) Watt/);
-				my ($total)= ($f->{"Data"} =~ /(\d+).\d+ kWh/);
+				my ($total)= ($f->{"Data"} =~ /([0-9]+(?:\.[0-9]+)?)/);
+				$total=ceil($total);
 				my $feeds={"id" => $f->{"idx"}, "name" => $name, "type" => "DevElectricity", "room" => "Utility", params =>[]};
 				push (@{$feeds->{'params'}}, {"key" => "Watts", "value" =>$usage, "unit" => "W"} );
 				 push (@{$feeds->{'params'}}, {"key" => "ConsoTotal", "value" =>$total, "unit" => "kWh"} );
 				push (@{$feed->{'devices'}}, $feeds );
+			} elsif ($f->{"Type"} eq "Usage") {
+				#DevElectricity Electricity consumption sensor
+				#Watts  Current consumption     Watt
+				#"Type" : "Usage", "SubType" : "Electric", "Data" : "122.3 Watt"
+				my ($total)= ($f->{"Data"} =~ /([0-9]+(?:\.[0-9]+)?)/);
+				$total=ceil($total);
+				my $feeds={"id" => $f->{"idx"}, "name" => $name, "type" => "DevElectricity", "room" => "Utility", params =>[]};
+				push (@{$feeds->{'params'}}, {"key" => "Watts", "value" =>$total, "unit" => "W"} );
 			} elsif ($f->{"Type"} eq "Current/Energy") {
 				#DevElectricity Electricity consumption sensor
 				#Watts  Current consumption     Watt
