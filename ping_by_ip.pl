@@ -1,4 +1,8 @@
 #!/usr/bin/perl
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# version 2 as published by the Free Software Foundation.
+# Author: epierre
 use v5.14;
 use LWP::Simple;                # From CPAN
 use JSON qw( decode_json );     # From CPAN
