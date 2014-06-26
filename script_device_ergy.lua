@@ -1,4 +1,10 @@
+-- This program is free software; you can redistribute it and/or
+-- modify it under the terms of the GNU General Public License
+-- version 2 as published by the Free Software Foundation.
+-- Author: epierre
 
+-- script to register a fixed power consumption usage based on the duration activity
+-- reguires dynamic libraries in lua to have sqlite support
 
 function timedifference(s)
    year = string.sub(s, 1, 4)
