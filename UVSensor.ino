@@ -1,3 +1,4 @@
+
 /*
   Vera Arduino UVM-30A
 
@@ -7,8 +8,12 @@
   -   >>> GND
   out >>> A0     
   
-  Contribution: epierre
- 
+  Contribution: epierre, bulldoglowell
+  
+-- This program is free software; you can redistribute it and/or
+-- modify it under the terms of the GNU General Public License
+-- version 2 as published by the Free Software Foundation.
+
 */
 
 #include <Sleep_n0m1.h>
@@ -24,7 +29,9 @@ unsigned long SLEEP_TIME = 30; // Sleep time between reads (in seconds)
 
 Sensor gw;
 Sleep sleep;
-int lastuv;
+int lastUV = -1;
+int uvIndexValue [13] = { 50, 227, 318, 408, 503, 606, 696, 795, 881, 976, 1079, 1170, 3000};
+int uvIndex;
 
 void setup()  
 { 
@@ -40,24 +47,19 @@ void setup()
 
 void loop()      
 {     
-  uint16_t auv = analogRead(0);// Get UV value
-  uint16_t uv=0;
-  Serial.println(auv);
-  if (auv<10) {uv=0;}
-  else if ((auv>=10) and(auv<46))  {uv=1;}
-  else if ((auv>=46) and(auv<65))  {uv=2;}
-  else if ((auv>=65) and(auv<83))  {uv=3;}
-  else if ((auv>=83) and(auv<103)) {uv=4;}
-  else if ((auv>=103)and(auv<124)) {uv=5;}
-  else if ((auv>=124)and(auv<142)) {uv=6;}
-  else if ((auv>=142)and(auv<162)) {uv=7;}
-  else if ((auv>=162)and(auv<180)) {uv=8;}
-  else if ((auv>=180)and(auv<200)) {uv=9;}
-  else if ((auv>=200)and(auv<221)) {uv=10;}
-  else if (auv>=221)              {uv=11;}
-  if (uv != lastuv) {
-      gw.sendVariable(CHILD_ID_UV, V_UV, uv);
-      lastuv = uv;
+  uint16_t uv = analogRead(0);// Get UV value
+  Serial.println(uv);
+  for (int i = 0; i < 12; i++)
+  {
+    if (uv <= uvIndexValue[i]) 
+    {
+      uvIndex = i;
+      break;
+    }
+  }
+  if (uvIndex != lastUV) {
+      gw.sendVariable(CHILD_ID_UV, V_UV, uvIndex);
+      lastUV = uvIndex;
   }
   
   // Power down the radio.  Note that the radio will get powered back up
