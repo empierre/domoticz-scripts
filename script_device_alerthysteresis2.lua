@@ -1,3 +1,10 @@
+-- This program is free software; you can redistribute it and/or
+-- modify it under the terms of the GNU General Public License
+-- version 2 as published by the Free Software Foundation.
+-- Author: epierre
+
+-- MAnages to send only one notificatio on an interval of time through a virtual switch
+
 t1 = os.time()
 s = otherdevices_lastupdate['Sensor1']
 -- returns a date time like 2013-07-11 17:23:12
