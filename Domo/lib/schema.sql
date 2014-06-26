@@ -12,8 +12,9 @@ CREATE TABLE if not exists sensor (
 		device_id INT not null,
 	    subtype  REAL,
 	    version  REAL);		
-CREATE TABLE if not exists value(
+CREATE TABLE if not exists value (
 		id INT PRIMARY KEY AUTOINCREMENT,
 		sensor_id INT not null,
-	    value TEXT,
-	    lastupdate    DATE);
+		value_type INT not null,
+	    	value TEXT,
+	    	lastupdate    DATE);
