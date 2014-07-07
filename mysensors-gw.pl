@@ -78,21 +78,48 @@ while(1) {
                 next if (! looks_like_number $radioId);
                 #$value = 0 unless ($value);
                 #$value = $value/1000 if $radioId =~ /I/g;
-                my $dt = DateTime->now;
+                my $dt = DateTime->now(time_zone=>'local');
                 my $date=join ' ', $dt->ymd, $dt->hms;
                 print "$date $radioId $childId $messageType $subType $payload\n";
-                if ($radioId==1) {
+                if ($radioId>=0) {
                         print FIC "$date $radioId $childId $messageType $subType $payload\n";
                 }
                 if (($messageType==4)&&($subType==5)) {
 			#Answer the node ID
-                        my $msg = "$radioId;$childId;4;5;1\n";
+                        my $msg = "$radioId;$childId;4;5;6\n";
                         my $co = $ob->write($msg);
                         warn "write failed\n" unless ($co);
                         print "$date W ($co) : $msg \n";
                         print FIC "$date W : $msg \n";
                         $ob->write_drain;
                 }
+                if (($messageType==1)&&($subType==35)) {
+			#Answer the node V_VOLUME
+                        my $msg = "$radioId;$childId;3;35;0\n";
+                        my $co = $ob->write($msg);
+                        warn "write failed\n" unless ($co);
+                        print "$date W ($co) : $msg \n";
+                        print FIC "$date W : $msg \n";
+                        $ob->write_drain;
+		}
+                if (($messageType==1)&&($subType==34)) {
+			#Answer the node V_FLOW
+                        my $msg = "$radioId;$childId;3;34;0\n";
+                        my $co = $ob->write($msg);
+                        warn "write failed\n" unless ($co);
+                        print "$date W ($co) : $msg \n";
+                        print FIC "$date W : $msg \n";
+                        $ob->write_drain;
+		}
+                if (($messageType==2)&&($subType==24)) {
+			#Answer the node VAR_1
+                        my $msg = "$radioId;$childId;3;24;10\n";
+                        my $co = $ob->write($msg);
+                        warn "write failed\n" unless ($co);
+                        print "$date W ($co) : $msg \n";
+                        print FIC "$date W : $msg \n";
+                        $ob->write_drain;
+		}
                 if (($messageType==4)&&($subType==13)) {
 			#Answer we are Metric
                         my $msg = "$radioId;$childId;4;13;M\n";
@@ -102,6 +129,15 @@ while(1) {
                         print FIC "$date W : $msg \n";
                         $ob->write_drain;
                 }
+                if (($messageType==1)&&($subType==24)) {
+			# Read the Temp value
+			$sensor_tab{$radioId}->{$subType}=$payload;
+			&update_sensor($radioId,$subType,$payload);
+			my $hum=$sensor_tab{$radioId}->{1}||0;
+			print "sending to DZ\n";
+			`curl -s "http://$domo_ip:$domo_port/json.htm?type=command&param=udevice&idx=124&nvalue=$payload" &`;
+
+		}
                 if (($messageType==1)&&($subType==0)) {
 			# Read the Temp value
 			$sensor_tab{$radioId}->{$subType}=$payload;
@@ -161,7 +197,7 @@ sub save_conf {
 }
 sub init_database {
 	my $dbh = DBI->connect(          
-	    "dbi:SQLite:dbname=mysensors.db?cache=shared", 
+	    "dbi:SQLite:dbname=mysensors.db", 
 	    "",                          
 	    "",                          
 	    { RaiseError => 1 },         
