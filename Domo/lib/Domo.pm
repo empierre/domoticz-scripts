@@ -35,7 +35,7 @@ get '/rooms' => sub {
 };
 
 get '/system' => sub {
- return {"id"=> "MyDomoAtHome","apiversion"=> $VERSION};
+ return {"id"=> "MyDomoAtHome","apiversion"=> 1};
 };
 
 
@@ -160,12 +160,20 @@ debug($system_url);
 
 				push (@{$feeds->{'params'}}, {"key" => "Status", "value" =>"$rbl"} );
 				push (@{$feeds->{'params'}}, {"key" => "Level", "value" => $f->{"Level"} } );
+				push (@{$feed->{'devices'}}, $feeds );
 
+				push (@{$feed->{'devices'}}, $feeds );
+			} elsif ($f->{"SwitchType"} eq "Blinds Inverted") {
+				#DevShutter
+				my $feeds={"id" => $f->{"idx"}, "name" => $name, "type" => "DevShutter", "room" => "Switches", params =>[]};
+				my $v=$f->{"Level"};
+				push (@{$feeds->{'params'}}, {"key" => "stopable", "value" =>"0"} );
+				push (@{$feeds->{'params'}}, {"key" => "pulseable", "value" =>"0"} );
+				push (@{$feeds->{'params'}}, {"key" => "Level", "value" => "$v" } );
 				push (@{$feed->{'devices'}}, $feeds );
 			} elsif ($f->{"SwitchType"} eq "Blinds Percentage") {
 				#DevShutter
-
-				my $feeds={"id" => $f->{"idx"}, "name" => $name, "type" => "DevDimmer", "room" => "Switches", params =>[]};
+				my $feeds={"id" => $f->{"idx"}, "name" => $name, "type" => "DevShutter", "room" => "Switches", params =>[]};
 				my $v=$f->{"Level"};
 				push (@{$feeds->{'params'}}, {"key" => "stopable", "value" =>"1"} );
 				push (@{$feeds->{'params'}}, {"key" => "pulseable", "value" =>"0"} );
@@ -174,18 +182,12 @@ debug($system_url);
 				push (@{$feed->{'devices'}}, $feeds );
 			} elsif ($f->{"SwitchType"} eq "Blinds") {
 				#DevShutter
-				my $feeds={"id" => $f->{"idx"}, "name" => $name, "type" => "DevDimmer", "room" => "Switches", params =>[]};
+				my $feeds={"id" => $f->{"idx"}, "name" => $name, "type" => "DevShutter", "room" => "Switches", params =>[]};
 				my $v=$f->{"Level"};
 				push (@{$feeds->{'params'}}, {"key" => "stopable", "value" =>"0"} );
 				push (@{$feeds->{'params'}}, {"key" => "pulseable", "value" =>"0"} );
 				push (@{$feeds->{'params'}}, {"key" => "Level", "value" => "$v" } );
-			} elsif ($f->{"SwitchType"} eq "Blinds Inverted") {
-				#DevShutter
-				my $feeds={"id" => $f->{"idx"}, "name" => $name, "type" => "DevDimmer", "room" => "Switches", params =>[]};
-				my $v=$f->{"Level"};
-				push (@{$feeds->{'params'}}, {"key" => "stopable", "value" =>"0"} );
-				push (@{$feeds->{'params'}}, {"key" => "pulseable", "value" =>"0"} );
-				push (@{$feeds->{'params'}}, {"key" => "Level", "value" => "$v" } );
+				push (@{$feed->{'devices'}}, $feeds );
 			} elsif ($f->{"SwitchType"} eq "Motion Sensor") {
 				#DevMotion	Motion security sensor
 				#Status	Current status : 1 = On / 0 = Off	N/A
