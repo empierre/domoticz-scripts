@@ -13,7 +13,7 @@ use feature     qw< unicode_strings >;
 use POSIX qw(ceil);
 #use JSON;
 
-our $VERSION = '0.3';
+our $VERSION = '0.4';
 set warnings => 0;
 
 set serializer => 'JSON'; 
@@ -35,7 +35,7 @@ get '/rooms' => sub {
 };
 
 get '/system' => sub {
- return {"id"=> "MyDomoAtHome","apiversion"=> 1};
+ return {"id"=> "MyDomoAtHome","apiversion"=> $VERSION};
 };
 
 
@@ -317,17 +317,49 @@ debug($system_url);
 				my $v=$f->{"UVI"};
 				push (@{$feeds->{'params'}}, {"key" => "Value", "value" => "$v"} );
 				push (@{$feed->{'devices'}}, $feeds );
-			} elsif ($f->{"Type"} eq "Lux")  {
-				#DevLux  UV sensor
-				my $feeds={"id" => $f->{"idx"}, "name" => $name, "type" => "DevLuminosity", "room" => "Temp", params =>[]};
-				my ($v)=($f->{"Data"}=~/(\d+) Lux/);
-				push (@{$feeds->{'params'}}, {"key" => "Value", "value" => "$v", "unit" => "lux"});
+			} elsif ($f->{"Type"} eq "Air Quality")  {
+				#DevCO2  CO2 sensor
+				my $feeds={"id" => $f->{"idx"}, "name" => $name, "type" => "DevCO2", "room" => "Temp", params =>[]};
+				my ($v)=($f->{"Data"}=~/(\d+) ppm/);
+				push (@{$feeds->{'params'}}, {"key" => "Value", "value" => "$v", "unit" => "ppm"});
 				push (@{$feed->{'devices'}}, $feeds );
+			} elsif ($f->{"Type"} eq "Wind")  {
+				#DevWind wind
+				my $feeds={"id" => $f->{"idx"}, "name" => $name, "type" => "DevWind", "room" => "Temp", params =>[]};
+				my ($dir)=($f->{"Direction"}=~/(\d+)/);
+				my ($speed)=($f->{"Speed"}=~/(\d+)/);
+				push (@{$feeds->{'params'}}, {"key" => "Speed", "value" => "$speed", "unit" => "km/h"});
+				push (@{$feeds->{'params'}}, {"key" => "Direction", "value" => "$dir", "unit" => "°"});
+				push (@{$feed->{'devices'}}, $feeds );
+			} elsif ($f->{"Type"} eq "RFXMeter")  {
+				if ($f->{"SwitchTypeVal"} eq "1") {
+					#Gas
+					my ($usage)= ($f->{"CounterToday"} =~ /(\d+) m3/);
+					my ($total)= ($f->{"Counter"} =~ /([0-9]+(?:\.[0-9]+)?)/);
+					$total=ceil($total);
+					my $feeds={"id" => $f->{"idx"}, "name" => $name, "type" => "DevElectricity", "room" => "Utility", params =>[]};
+					push (@{$feeds->{'params'}}, {"key" => "Watts", "value" =>$usage, "unit" => "m3"} );
+					 push (@{$feeds->{'params'}}, {"key" => "ConsoTotal", "value" =>$total, "unit" => "m3"} );
+					push (@{$feed->{'devices'}}, $feeds );
+				} elsif ($f->{"SwitchTypeVal"} eq "2") {
+					#Water
+					my ($usage)= ($f->{"CounterToday"} =~ /([0-9]+(?:\.[0-9]+)?)/);
+					my ($total)= ($f->{"Counter"} =~ /^([0-9]+(?:\.[0-9]+)?)/);
+					$total=ceil($total);
+					my $feeds={"id" => $f->{"idx"}, "name" => $name, "type" => "DevElectricity", "room" => "Utility", params =>[]};
+					push (@{$feeds->{'params'}}, {"key" => "Watts", "value" =>$usage, "unit" => "m3"} );
+					 push (@{$feeds->{'params'}}, {"key" => "ConsoTotal", "value" =>$total, "unit" => "m3"} );
+					push (@{$feed->{'devices'}}, $feeds );
+				} elsif ($f->{"SwitchTypeVal"} eq "3") {
+					#Counter
+					my $feeds={"id" => $f->{"idx"}, "name" => $name, "type" => "DevCounter", "room" => "Temp", params =>[]};
+					my $v=$f->{"Counter"};
+					push (@{$feeds->{'params'}}, {"key" => "Value", "value" => "$v"} );
+					push (@{$feed->{'devices'}}, $feeds );
+				} else {print STDERR "unk!\n";
+				}
 			}
-
 		}
-
-
 	}; 
 	#Get Scenes
 	$system_url=config->{domo_path}."/json.htm?type=scenes";
@@ -370,9 +402,9 @@ debug($system_url);
 				$name=~s/\//_/;
 				$name=~s/%/P/;
 				my $feeds={"id" => $f->{"idx"}."_cam", "name" => $name, "type" => "DevCamera", "room" => "Switches", params =>[]};
-				my $v=$f->{"ImageURL"};
+				my $v=$f->{"ImageURL"};my $v2=config->{external_url_camera};
 				push (@{$feeds->{'params'}}, {"key" => "localjpegurl", "value" => "$v"} );
-#				push (@{$feeds->{'params'}}, {"key" => "remotejpegurl", "value" => "$v"} );
+				push (@{$feeds->{'params'}}, {"key" => "remotejpegurl", "value" => "$v2"} );
 				push (@{$feed->{'devices'}}, $feeds );
 		}
 	}
@@ -386,4 +418,3 @@ debug($system_url);
 };
 
 true;
-
