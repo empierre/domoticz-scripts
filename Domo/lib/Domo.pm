@@ -2,7 +2,7 @@ package Domo;
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
 # version 2 as published by the Free Software Foundation.
-# Author: epierre
+# Author: epierre >epierre@e-nef.com>
 use Dancer ':syntax';
 use File::Slurp;
 use LWP::UserAgent;
