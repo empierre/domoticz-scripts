@@ -349,13 +349,13 @@ debug($system_url);
 					my ($total)= ($f->{"Counter"} =~ /^([0-9]+(?:\.[0-9]+)?)/);
 					$total=ceil($total);
 					my $feeds={"id" => $f->{"idx"}, "name" => $name, "type" => "DevElectricity", "room" => "Utility", params =>[]};
-					push (@{$feeds->{'params'}}, {"key" => "Watts", "value" =>$usage, "unit" => "m3"} );
-					 push (@{$feeds->{'params'}}, {"key" => "ConsoTotal", "value" =>$total, "unit" => "m3"} );
+					push (@{$feeds->{'params'}}, {"key" => "Watts", "value" =>"$usage", "unit" => "m3"} );
+					 push (@{$feeds->{'params'}}, {"key" => "ConsoTotal", "value" =>"$total", "unit" => "m3"} );
 					push (@{$feed->{'devices'}}, $feeds );
 					#Water by liter
 					my $usage2=$usage*1000; #move to liters
-					my $feeds={"id" => $f->{"idx"}, "name" => $name, "type" => "DevGenericSensor", "room" => "Utility", params =>[]};
-					push (@{$feeds->{'params'}}, {"key" => "Watts", "value" =>$usage2, "unit" => "l"} );
+					my $feeds={"id" => $f->{"idx"}."_l", "name" => $name."_l", "type" => "DevGenericSensor", "room" => "Utility", params =>[]};
+					push (@{$feeds->{'params'}}, {"key" => "Value", "value" =>"$usage2", "unit"=> "L"} );
 					push (@{$feed->{'devices'}}, $feeds );
 				} elsif ($f->{"SwitchTypeVal"} eq "3") {
 					#Counter
@@ -382,12 +382,12 @@ debug($system_url);
 					push (@{$feeds->{'params'}}, {"key" => "Value", "value" => "$v", "unit" => "mbar"} );
 					push (@{$feed->{'devices'}}, $feeds );
 				} elsif ($f->{"SubType"} eq "Visibility") {
-					my $feeds={"id" => $f->{"idx"}, "name" => $name, "type" => "DevGenericSensor", "room" => "Utility", params =>[]};
+					my $feeds={"id" => $f->{"idx"}, "name" => $name, "type" => "DevGenericSensor", "room" => "Temp", params =>[]};
 					my ($v)= ($f->{"Data"} =~ /^([0-9]+(?:\.[0-9]+)?)/);
 					push (@{$feeds->{'params'}}, {"key" => "Value", "value" => "$v", "unit" => "km"} );
 					push (@{$feed->{'devices'}}, $feeds );
 				} elsif ($f->{"SubType"} eq "Solar Radiation") {
-					my $feeds={"id" => $f->{"idx"}, "name" => $name, "type" => "DevGenericSensor", "room" => "Utility", params =>[]};
+					my $feeds={"id" => $f->{"idx"}, "name" => $name, "type" => "DevGenericSensor", "room" => "Temp", params =>[]};
 					my ($v)= ($f->{"Data"} =~ /^([0-9]+(?:\.[0-9]+)?)/);
 					push (@{$feeds->{'params'}}, {"key" => "Value", "value" => "$v", "unit" => "km"} );
 					push (@{$feed->{'devices'}}, $feeds );
