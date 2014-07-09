@@ -18,104 +18,82 @@
 
 set -e
 
-if [ -r "/lib/lsb/init-functions" ]; then
-  . /lib/lsb/init-functions
-else
-  echo "E: /lib/lsb/init-functions not found, lsb-base (>= 3.0-6) needed"
-  exit 1
-fi
-
-LANG=C
-export LANG
-
 PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/bin
-DAEMON=/home/cubie/Domo/start.sh
-NAME=domo-gw
-DESC="Domoticz REST Gateway"
-PIDFILE=/var/run/$NAME.pid
-LOGFILE=/var/log/domo-gw.log
 
-test -f $DAEMON || exit 0
+# Source function library.
+. /etc/init.d/functions
 
+# Get config.
+test -f /etc/sysconfig/network && . /etc/sysconfig/network
 
-# Defaults
-OPTIONS="-www 8080 -log"
+# Check that we are root ... so non-root users stop here
+[ `id -u` = 0 ] || exit 1
 
-# this is from madduck on IRC, 2006-07-06
-# There should be a better possibility to give daemon error messages
-# and/or to log things
-log()
-{
-  case "$1" in
-    [[:digit:]]*) success=$1; shift;;
-    *) :;;
-  esac
-  log_action_begin_msg "$1"; shift
-  log_action_end_msg ${success:-0} "$*"
+# Check that networking is up.
+[ "${NETWORKING}" = "yes" ] || exit 0
+
+RETVAL=0
+
+STARMAN="/usr/bin/starman"
+MYAPP_HOME="/home/cubie/Domo"
+PID_FILE="/var/run/MyDomoAtHome-http.pid"
+PORT=5001
+HOST=127.0.0.1
+STARMAN_OPTS="-D -E deploy --pid $PID_FILE -I$MYAPP_HOME/lib --listen $HOST:$PORT $MYAPP_HOME/bin/app.pl"
+
+test -f STARMAN || exit 0
+
+start(){
+    echo -n $"Starting myapp-http: "
+
+    daemon --pidfile $PID_FILE $STARMAN "$STARMAN_OPTS"
+    RETVAL=$?
+    echo
+    touch /var/lock/subsys/myapp-http
+    return $RETVAL
 }
 
-start () {
-  if ! pidofproc -p "$PIDFILE" "$DAEMON" >/dev/null; then
-      log_daemon_msg "Starting $DESC"
-      # since we dont have a proper daemon, lets pretend...
-      $DAEMON $OPTIONS &> LOGFILE &
-      pid=$!
-      if [ $! != 0 ]; then
-        echo $pid > $PIDFILE
-        log_end_msg 0
-        exit 1
-      else
-        log_end_msg 1
-      fi       
-      ret=$?
-  else
-    log_failure_msg "already running!"
-    log_end_msg 1
-    exit 1
-  fi
-  return $ret
+stop(){
+    echo -n $"Stopping $prog: "
+    killproc -p $PID_FILE $prog  
+    RETVAL=$?
+    echo
+    rm -f /var/lock/subsys/myapp-http
+    return $RETVAL
+
 }
 
-stop () {
-  # this is a workaround as Domoticz does not delete its pidfile
-  SIG="${1:--TERM}"
-  killproc -p "$PIDFILE" "$DAEMON" "$SIG"
-  # this is a workaround for killproc -TERM not zapping the pidfile
-  if ! pidofproc -p "$PIDFILE" "$DAEMON">/dev/null; then
-    rm -f $PIDFILE
-  fi
+restart(){
+    stop
+    start
 }
 
+condrestart(){
+    [ -e /var/lock/subsys/myapp-http ] && restart
+    return 0
+}
+
+
+# See how we were called.
 case "$1" in
-  start)
-	start
-	log_end_msg 0
-	;;
-  stop)
-	log_daemon_msg "Stopping $DESC"
-	stop
-	log_end_msg 0
-	;;
-  reload|force-reload)
-	log_daemon_msg "Reloading $DESC"
-	stop "-HUP"
-	log_end_msg 0
-	;;
-  restart)
-	log_daemon_msg "Restarting $DESC"
-	stop
-	sleep 8
-	start
-	log_end_msg 0
-	;;
-  status)
-  	status_of_proc $DAEMON $NAME 
-	;;
-  *)
-	N=/etc/init.d/$NAME
-	echo "Usage: $N {start|stop|restart|reload|force-reload|status}" >&2
-	exit 1
-	;;
+    start)
+ start
+ ;;
+    stop)
+ stop
+ ;;
+    status)
+ status -p $PID_FILE starman
+ ;;
+    restart)
+ restart
+ ;;
+    condrestart)
+ condrestart
+ ;;
+    *)
+ echo $"Usage: $0 {start|stop|status|restart|condrestart|reload}"
+ RETVAL=1
 esac
 
-exit 0
+exit $RETVAL
