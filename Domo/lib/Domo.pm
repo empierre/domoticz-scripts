@@ -352,6 +352,11 @@ debug($system_url);
 					push (@{$feeds->{'params'}}, {"key" => "Watts", "value" =>$usage, "unit" => "m3"} );
 					 push (@{$feeds->{'params'}}, {"key" => "ConsoTotal", "value" =>$total, "unit" => "m3"} );
 					push (@{$feed->{'devices'}}, $feeds );
+					#Water by liter
+					my $usage2=$usage*1000; #move to liters
+					my $feeds={"id" => $f->{"idx"}, "name" => $name, "type" => "DevGenericSensor", "room" => "Utility", params =>[]};
+					push (@{$feeds->{'params'}}, {"key" => "Watts", "value" =>$usage2, "unit" => "l"} );
+					push (@{$feed->{'devices'}}, $feeds );
 				} elsif ($f->{"SwitchTypeVal"} eq "3") {
 					#Counter
 					my $feeds={"id" => $f->{"idx"}, "name" => $name, "type" => "DevCounter", "room" => "Temp", params =>[]};
