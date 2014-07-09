@@ -2,7 +2,7 @@ package Domo;
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
 # version 2 as published by the Free Software Foundation.
-# Author: epierre >epierre@e-nef.com>
+# Author: epierre <epierre@e-nef.com>
 use Dancer ':syntax';
 use File::Slurp;
 use LWP::UserAgent;
@@ -13,7 +13,7 @@ use feature     qw< unicode_strings >;
 use POSIX qw(ceil);
 #use JSON;
 
-our $VERSION = '0.4';
+our $VERSION = '0.5';
 set warnings => 0;
 
 set serializer => 'JSON'; 
@@ -359,6 +359,33 @@ debug($system_url);
 					push (@{$feeds->{'params'}}, {"key" => "Value", "value" => "$v"} );
 					push (@{$feed->{'devices'}}, $feeds );
 				} else {print STDERR "unk!\n";
+				}
+			} elsif ($f->{"Type"} eq "General")  {
+					if ($f->{"SubType"} eq "Percentage") {
+					my $feeds={"id" => $f->{"idx"}, "name" => $name, "type" => "DevGenericSensor", "room" => "Utility", params =>[]};
+					my ($v)= ($f->{"Data"} =~ /^([0-9]+(?:\.[0-9]+)?)/);
+					push (@{$feeds->{'params'}}, {"key" => "Value", "value" => "$v", "unit" => "%"} );
+					push (@{$feed->{'devices'}}, $feeds );
+				} elsif ($f->{"SubType"} eq "Voltage") {
+					my $feeds={"id" => $f->{"idx"}, "name" => $name, "type" => "DevGenericSensor", "room" => "Utility", params =>[]};
+					my ($v)= ($f->{"Data"} =~ /^([0-9]+(?:\.[0-9]+)?)/);
+					push (@{$feeds->{'params'}}, {"key" => "Value", "value" => "$v", "unit" => "V"} );
+					push (@{$feed->{'devices'}}, $feeds );
+				} elsif ($f->{"SubType"} eq "Pressure") {
+					my $feeds={"id" => $f->{"idx"}, "name" => $name, "type" => "DevPressure", "room" => "Temp", params =>[]};
+					my ($v)= ($f->{"Data"} =~ /^([0-9]+(?:\.[0-9]+)?)/);
+					push (@{$feeds->{'params'}}, {"key" => "Value", "value" => "$v", "unit" => "mbar"} );
+					push (@{$feed->{'devices'}}, $feeds );
+				} elsif ($f->{"SubType"} eq "Visibility") {
+					my $feeds={"id" => $f->{"idx"}, "name" => $name, "type" => "DevGenericSensor", "room" => "Utility", params =>[]};
+					my ($v)= ($f->{"Data"} =~ /^([0-9]+(?:\.[0-9]+)?)/);
+					push (@{$feeds->{'params'}}, {"key" => "Value", "value" => "$v", "unit" => "km"} );
+					push (@{$feed->{'devices'}}, $feeds );
+				} elsif ($f->{"SubType"} eq "Solar Radiation") {
+					my $feeds={"id" => $f->{"idx"}, "name" => $name, "type" => "DevGenericSensor", "room" => "Utility", params =>[]};
+					my ($v)= ($f->{"Data"} =~ /^([0-9]+(?:\.[0-9]+)?)/);
+					push (@{$feeds->{'params'}}, {"key" => "Value", "value" => "$v", "unit" => "km"} );
+					push (@{$feed->{'devices'}}, $feeds );
 				}
 			}
 		}
