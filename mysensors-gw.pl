@@ -1,8 +1,4 @@
 #!/usr/bin/perl -w
-# This program is free software; you can redistribute it and/or
-# modify it under the terms of the GNU General Public License
-# version 2 as published by the Free Software Foundation.
-# Author: epierre
 use warnings;
 use strict;
 use POSIX qw(strftime);
@@ -86,34 +82,22 @@ while(1) {
                 }
                 if (($messageType==4)&&($subType==5)) {
 			#Answer the node ID
-                        my $msg = "$radioId;$childId;4;5;6\n";
+                        my $msg = "$radioId;$childId;4;5;8\n";
                         my $co = $ob->write($msg);
                         warn "write failed\n" unless ($co);
                         print "$date W ($co) : $msg \n";
                         print FIC "$date W : $msg \n";
                         $ob->write_drain;
                 }
-                if (($messageType==1)&&($subType==35)) {
-			#Answer the node V_VOLUME
-                        my $msg = "$radioId;$childId;3;35;0\n";
-                        my $co = $ob->write($msg);
-                        warn "write failed\n" unless ($co);
-                        print "$date W ($co) : $msg \n";
-                        print FIC "$date W : $msg \n";
-                        $ob->write_drain;
-		}
-                if (($messageType==1)&&($subType==34)) {
-			#Answer the node V_FLOW
-                        my $msg = "$radioId;$childId;3;34;0\n";
-                        my $co = $ob->write($msg);
-                        warn "write failed\n" unless ($co);
-                        print "$date W ($co) : $msg \n";
-                        print FIC "$date W : $msg \n";
-                        $ob->write_drain;
-		}
                 if (($messageType==2)&&($subType==24)) {
 			#Answer the node VAR_1
-                        my $msg = "$radioId;$childId;3;24;10\n";
+			my $msg;
+			if ($radioId==2) {
+				my $val=$sensor_tab{$radioId}->{$subType}||36890;
+	                        $msg = "$radioId;$childId;3;24;$val\n";
+			} else {
+	                        $msg = "$radioId;$childId;3;24;10\n";
+			}
                         my $co = $ob->write($msg);
                         warn "write failed\n" unless ($co);
                         print "$date W ($co) : $msg \n";
@@ -128,34 +112,56 @@ while(1) {
                         print "$date W ($co) : $msg \n";
                         print FIC "$date W : $msg \n";
                         $ob->write_drain;
-                }
-                if (($messageType==1)&&($subType==24)) {
-			# Read the Temp value
-			$sensor_tab{$radioId}->{$subType}=$payload;
-			&update_sensor($radioId,$subType,$payload);
-			my $hum=$sensor_tab{$radioId}->{1}||0;
-			print "sending to DZ\n";
-			`curl -s "http://$domo_ip:$domo_port/json.htm?type=command&param=udevice&idx=124&nvalue=$payload" &`;
-
 		}
                 if (($messageType==1)&&($subType==0)) {
-			# Read the Temp value
+			# Read the Temp value
 			$sensor_tab{$radioId}->{$subType}=$payload;
-			&update_sensor($radioId,$subType,$payload);
+			&update_or_insert($radioId,$subType,$payload);
 			my $hum=$sensor_tab{$radioId}->{1}||0;
 			next if ($hum<=0);
-			print "sending to DZ\n";
+			print "sending to DZ 164 $payload $hum\n";
 			`curl -s "http://$domo_ip:$domo_port/json.htm?type=command&param=udevice&idx=164&svalue=$payload;$hum;2" &`;
 
 		}
                 if (($messageType==1)&&($subType==1)) {
-			# Read the Humidity value
+			# Read the Humidity value
 			$sensor_tab{$radioId}->{$subType}=$payload;
-			&update_sensor($radioId,$subType,$payload);
+			&update_or_insert($radioId,$subType,$payload);
 			my $temp=$sensor_tab{$radioId}->{0}||0;
 			next if ($temp<=0);
-			print "sending to DZ\n";
+			print "sending to DZ 164 $payload\n";
 			`curl -s "http://$domo_ip:$domo_port/json.htm?type=command&param=udevice&idx=164&svalue=$temp;$payload;2" &`;
+		}
+ 		if (($messageType==1)&&($subType==24)) {
+			# save a VAR
+			$sensor_tab{$radioId}->{$subType}=$payload;
+			&update_or_insert($radioId,$subType,$payload);
+			if ($radioId==3) {
+				print "sending to DZ 124 $payload\n";
+				`curl -s "http://$domo_ip:$domo_port/json.htm?type=command&param=udevice&idx=124&nvalue=$payload" &`;
+			}
+		}
+ 		if (($messageType==1)&&($subType==4)) {
+			# save a BARO
+			$sensor_tab{$radioId}->{$subType}=$payload;
+			&update_or_insert($radioId,$subType,$payload);
+			if ($radioId==4) {
+				print "sending to DZ 198 $payload\n";
+				`curl -s "http://$domo_ip:$domo_port/json.htm?type=command&param=udevice&idx=198&svalue=$payload" &`;
+			}
+		}
+ 		if (($messageType==1)&&($subType==35)) {
+			# Read the Temp value
+			$sensor_tab{$radioId}->{$subType}=$payload;
+			&update_or_insert($radioId,$subType,$payload);
+			my $hum=$sensor_tab{$radioId}->{1}||0;
+			if ($radioId==2) {
+				$payload=$payload*1000;
+				print "sending to DZ 129 $payload\n";
+				`curl -s "http://$domo_ip:$domo_port/json.htm?type=command&param=udevice&idx=129&svalue=$payload" &`;
+			} else {
+				print "What to do ?\n";
+			}
 		}
         }
         sleep(1);
@@ -255,4 +261,14 @@ sub update_sensor {
 	my $stmt = qq(UPDATE sensors set value=$_[2] where id=$_[0] and subtype=$_[1] );
 	my $rv = $dbh->do($stmt) or die $DBI::errstr;
 	$sth->finish();
+}
+sub update_or_insert {
+	my $sth = $dbh->prepare( "SELECT value FROM sensors WHERE id=$_[0] AND subtype=$_[1]");
+	$sth->execute();
+	my $row = $sth->fetch;
+	if (!$row) {
+		insert_sensor($_[0],$_[1],$_[2]);
+	} else {
+		update_sensor($_[0],$_[1],$_[2]); 
+	}
 }
