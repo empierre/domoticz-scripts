@@ -1,4 +1,5 @@
 #!/usr/bin/perl -w
+#  License: Attribution-NonCommercial-ShareAlike 3.0 Unported (CC BY-NC-SA 3.0)
 use warnings;
 use strict;
 use POSIX qw(strftime);
@@ -10,8 +11,8 @@ use DBI;
 use Config::Simple;
 
 # Initialization strings
-my $base="/home/cubie/";
-my $conf="/home/cubie/.conf-mysensors";
+my $base="/home/in/";
+my $conf="/home/in/domoticz-epi/.conf-mysensors";
 my $ccnt;
 my $cfg;
 my ($count, $string, $radioId, $value);
@@ -24,7 +25,7 @@ my $dbh;
 my %sensor_tab;
 
 # SQLite database connexion
-if (! -e $base."mysensors.db") {
+if (! -e "mysensors.db") {
 	$dbh=&init_database();
 	&create_table($dbh);
 } else {$dbh=&init_database();}
@@ -66,7 +67,7 @@ while(1) {
                $_=~ s/\t/\=/;
                $_=~ s/\r//;
                $_=~ s/\n//;
-                my ($radioId,$childId,$messageType,$routing_id,$subType,$payload) = split(";", $_);
+                my ($radioId,$childId,$messageType,$ack,$subType,$payload) = split(";", $_);
                 if (! $childId) {$childId="0";}
                 if (! $messageType) {$messageType="0";}
                 if (! $subType) {$subType="0";}
@@ -77,13 +78,13 @@ while(1) {
                 #$value = $value/1000 if $radioId =~ /I/g;
                 my $dt = DateTime->now(time_zone=>'local');
                 my $date=join ' ', $dt->ymd, $dt->hms;
-                print "$date $radioId $childId $messageType $subType $payload\n";
+                print "$date $radioId $childId $messageType $ack $subType $payload\n";
                 if ($radioId>=0) {
-                        print FIC "$date $radioId $childId $messageType $subType $payload\n";
+                        print FIC "$date $radioId $childId $messageType $ack $subType $payload\n";
                 }
                 if (($messageType==4)&&($subType==5)) {
 			#Answer the node ID
-                        my $msg = "$radioId;$childId;4;5;8\n";
+                        my $msg = "$radioId;$childId;4;0;5;8\n";
                         my $co = $ob->write($msg);
                         warn "write failed\n" unless ($co);
                         print "$date W ($co) : $msg \n";
@@ -95,9 +96,9 @@ while(1) {
 			my $msg;
 			if ($radioId==2) {
 				my $val=$sensor_tab{$radioId}->{$subType}||36890;
-	                        $msg = "$radioId;$childId;3;24;$val\n";
+	                        $msg = "$radioId;$childId;0;3;24;$val\n";
 			} else {
-	                        $msg = "$radioId;$childId;3;24;10\n";
+	                        $msg = "$radioId;$childId;0;3;24;10\n";
 			}
                         my $co = $ob->write($msg);
                         warn "write failed\n" unless ($co);
@@ -107,7 +108,7 @@ while(1) {
 		}
                 if (($messageType==4)&&($subType==13)) {
 			#Answer we are Metric
-                        my $msg = "$radioId;$childId;4;13;M\n";
+                        my $msg = "$radioId;$childId;0;4;13;M\n";
                         my $co = $ob->write($msg);
                         warn "write failed\n" unless ($co);
                         print "$date W ($co) : $msg \n";
