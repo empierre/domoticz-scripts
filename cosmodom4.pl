@@ -1,9 +1,4 @@
 #!/usr/bin/perl
-# This program is free software; you can redistribute it and/or
-# modify it under the terms of the GNU General Public License
-# version 2 as published by the Free Software Foundation.
-# Author: epierre
-
 use v5.14;
 use LWP::Simple;                # From CPAN
 #use JSON qw( decode_json );     # From CPAN
@@ -19,8 +14,8 @@ use Time::Piece;
 use feature     qw< unicode_strings >;
 
 
-my $COSM_API_KEY = 'xxx';
-my $COSM_FEED = "xxx";
+my $COSM_API_KEY = '7W0c7m4H4Seb4kRIrI5NjQszYhD9IFVFKlmW7OHNvJqA5lyS';
+my $COSM_FEED = "140510344";
 my $feed = { 'version' => '1.0.0', 'datastreams' => [] };
  
 # Create an HTTP client
@@ -29,10 +24,10 @@ $ua->agent('RasperryPiInMyHome/1.4 ');
  
 my $trendsurl = "http://192.168.0.24:8080/json.htm?type=devices&filter=all&used=true&order=Name";
 
-my $json = get( $trendsurl );
+my $json = $ua->get( $trendsurl );
 die "Could not get $trendsurl!" unless defined $json;
 # Decode the entire JSON
-my $decoded = JSON->new->utf8(0)->decode( $json );
+my $decoded = JSON->new->utf8(0)->decode( $json->decoded_content );
 
 my @results = @{ $decoded->{'result'} };
 foreach my $f ( @results ) {
@@ -49,7 +44,7 @@ foreach my $f ( @results ) {
 	if ($bl eq "On") { $rbl=1;} 
 	elsif ($bl eq "Off") { $rbl=0;} 
 	else { $rbl=$bl;} 
-	print "L0 $name/$rbl/".$dt->datetime."\n";
+	print "L0 $name $name/$rbl/".$dt->datetime."\n";
 	#push(@{$feed->{'datastreams'}}, {'id' => $name, 'current_value' => $rbl, 'datapoints' => { "at" => $dt->datetime, "value" => $rbl } });
 	#push(@{$feed->{'datastreams'}}, {'id' => $name, 'current_value' => $rbl, "at" => $dt->datetime });
   } elsif ($f->{"Type"} eq "Group") {
@@ -71,7 +66,7 @@ foreach my $f ( @results ) {
 			$nam=~s/\s/_/;
 			$nam=~s/\//_/;
 			$nam=~s/%/P/;
-			print "L1 $nam/$tab[0]/mm\n";
+			print "L1 $nam $nam/$tab[0]/mm\n";
 			print $nam."_rate/$tab[1]/mm\n";
 			push(@{$feed->{'datastreams'}}, {'id' => $nam, 'current_value' => scalar($tab[0]), 'units' => "mm"});
 			push(@{$feed->{'datastreams'}}, {'id' => $nam."_rate", 'current_value' => scalar($tab[1]), 'units' => "mm"});
@@ -99,7 +94,7 @@ foreach my $f ( @results ) {
 			$nam=~s/\s/_/g;
 			$nam=~s/\//_/g;
 			$nam=~s/%/P/g;
-			print "L2 $nam/$temp/$unit\n";
+			print "L2 $nam $nam/$temp/$unit\n";
 			push(@{$feed->{'datastreams'}}, {'id' => $nam, 'current_value' => scalar($temp), 'units' => $unit});
 		}
 	}
