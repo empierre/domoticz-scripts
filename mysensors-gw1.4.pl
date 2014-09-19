@@ -11,8 +11,8 @@ use DBI;
 use Config::Simple;
 
 # Initialization strings
-my $base="/home/in/";
-my $conf="/home/in/domoticz-epi/.conf-mysensors";
+my $base="/home/cubie/";
+my $conf="/home/cubie/domoticz-epi/.conf-mysensors";
 my $ccnt;
 my $cfg;
 my ($count, $string, $radioId, $value);
@@ -94,12 +94,8 @@ while(1) {
                 if (($messageType==2)&&($subType==24)) {
 			#Answer the node VAR_1
 			my $msg;
-			if ($radioId==2) {
-				my $val=$sensor_tab{$radioId}->{$subType}||36890;
-	                        $msg = "$radioId;$childId;0;3;24;$val\n";
-			} else {
-	                        $msg = "$radioId;$childId;0;3;24;10\n";
-			}
+			my $val=$sensor_tab{$radioId}->{$subType}||36890;
+	                $msg = "$radioId;$childId;0;3;24;$val\n";
                         my $co = $ob->write($msg);
                         warn "write failed\n" unless ($co);
                         print "$date W ($co) : $msg \n";
@@ -164,10 +160,8 @@ while(1) {
 			# save a BARO
 			$sensor_tab{$radioId}->{$subType}=$payload;
 			&update_or_insert($radioId,$subType,$payload);
-			if ($radioId==4) {
-				print "sending to DZ 198 $payload\n";
-				`curl -s "http://$domo_ip:$domo_port/json.htm?type=command&param=udevice&idx=198&svalue=$payload" &`;
-			}
+			print "sending to DZ 198 $payload\n";
+			`curl -s "http://$domo_ip:$domo_port/json.htm?type=command&param=udevice&idx=198&svalue=$payload" &`;
 		}
  		if (($messageType==1)&&($subType==35)) {
 			# Read the Temp value
