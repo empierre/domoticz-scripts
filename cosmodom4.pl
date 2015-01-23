@@ -14,15 +14,15 @@ use Time::Piece;
 use feature     qw< unicode_strings >;
 
 
-my $COSM_API_KEY = '7W0c7m4H4Seb4kRIrI5NjQszYhD9IFVFKlmW7OHNvJqA5lyS';
-my $COSM_FEED = "140510344";
+my $COSM_API_KEY = '';
+my $COSM_FEED = "";
 my $feed = { 'version' => '1.0.0', 'datastreams' => [] };
  
 # Create an HTTP client
 my $ua = LWP::UserAgent->new;
 $ua->agent('RasperryPiInMyHome/1.4 ');
  
-my $trendsurl = "http://192.168.0.24:8080/json.htm?type=devices&filter=all&used=true&order=Name";
+my $trendsurl = "http://192.168.0.28:8080/json.htm?type=devices&filter=all&used=true&order=Name";
 
 my $json = $ua->get( $trendsurl );
 die "Could not get $trendsurl!" unless defined $json;
@@ -74,9 +74,9 @@ foreach my $f ( @results ) {
 		@tab=split(/,/,$te);
 		my $idx=0;
 		foreach my $tem (@tab) {
-			my ($temp,$unit)=($tem=~/(\d*.?\d*)(.*)/);
+			my ($temp,$unit)=($tem=~/(\-?\d*.?\d*)(.*)/);
 			if ($tem=~/Total/) {
-				($unit,$temp)=($tem=~/(Total): (\d*.?\d*)/);
+				($unit,$temp)=($tem=~/(Total): (\-?\d*.?\d*)/);
 			}
 			$idx++;
 			$unit=~s/\s*//;
@@ -113,7 +113,7 @@ foreach my $f ( @results ) {
 #print Dumper $feed;
  
 # Get the temperature of the core
-my $temp = read_file('/sys/class/thermal/thermal_zone0/temp') / 1000;
+my $temp = read_file('/sys/devices/platform/sunxi-i2c.0/i2c-0/0-0034/temp1_input') / 1000;
 $temp=sprintf "%2.3f", $temp;
 push(@{$feed->{'datastreams'}}, {'id' => 'pi-core', 'current_value' => $temp});
 
