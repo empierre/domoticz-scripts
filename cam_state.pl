@@ -3,7 +3,7 @@
 
 $a= `/usr/bin/curl -s 'http://192.168.0.25:88/cgi-bin/CGIProxy.fcgi?cmd=getMotionDetectConfig&usr=admin&pwd=xxx' ` ;
 
-($status_lnk)=($a=~/linkage>(\d)<\//);
+($status_lnk)=($a=~/linkage>(\d+)<\//);
 
 print "test: $cam $status_lnk\n";
 
