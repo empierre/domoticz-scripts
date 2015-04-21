@@ -9,11 +9,14 @@ use POSIX;
 use feature     qw< unicode_strings >;
 #Support: domoticz@e-nef.com ou forum Domoticz
 
+#Pour ajouter les librairies nécessaires:
+#sudo apt-get install libjson-perl libdatetime-perl libwww-perl libxml-simple-perl
+
 #A adapter à votre configuration:
 my $domo_ip="192.168.0.28";
 my $domo_port="8080";
 my $agglomeration="PARIS";
-my $dz_ind=211;
+my $dz_ind=211; #ID d'un device virtuel de type CO2 pour tous les suivants
 my $dz_o3=220;
 my $dz_no2=221;
 my $dz_so2=222;
