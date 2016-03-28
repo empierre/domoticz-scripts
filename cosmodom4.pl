@@ -17,6 +17,7 @@ use feature     qw< unicode_strings >;
 my $COSM_API_KEY = '';
 my $COSM_FEED = "";
 my $feed = { 'version' => '1.0.0', 'datastreams' => [] };
+my %list={};
  
 # Create an HTTP client
 my $ua = LWP::UserAgent->new;
@@ -44,7 +45,8 @@ foreach my $f ( @results ) {
 	if ($bl eq "On") { $rbl=1;} 
 	elsif ($bl eq "Off") { $rbl=0;} 
 	else { $rbl=$bl;} 
-	print "L0 $name $name/$rbl/".$dt->datetime."\n";
+	#print "L0 $name $name/$rbl/".$dt->datetime."\n";
+	$rbl=~s/ //;
 	#push(@{$feed->{'datastreams'}}, {'id' => $name, 'current_value' => $rbl, 'datapoints' => { "at" => $dt->datetime, "value" => $rbl } });
 	#push(@{$feed->{'datastreams'}}, {'id' => $name, 'current_value' => $rbl, "at" => $dt->datetime });
   } elsif ($f->{"Type"} eq "Group") {
@@ -56,6 +58,7 @@ foreach my $f ( @results ) {
 	#next if $te=~/;/;
 	#next if $name=~/CM180/;
 	#next if $name=~/RFXMeter/;
+	next if $name=~/Evohome/;
 	#next if $f->{"idx"}==131;
 	next if $f->{"idx"}==3;
 
@@ -65,9 +68,10 @@ foreach my $f ( @results ) {
 			my $nam=$f->{"Name"};
 			$nam=~s/\s/_/;
 			$nam=~s/\//_/;
+			$nam=~s/\ /_/g;
 			$nam=~s/%/P/;
-			print "L1 $nam $nam/$tab[0]/mm\n";
-			print $nam."_rate/$tab[1]/mm\n";
+			#print "$nam $nam/$tab[0]/mm\n";
+			print "R ".$nam."_rate/$tab[1]/mm\n";
 			push(@{$feed->{'datastreams'}}, {'id' => $nam, 'current_value' => scalar($tab[0]), 'units' => "mm"});
 			push(@{$feed->{'datastreams'}}, {'id' => $nam."_rate", 'current_value' => scalar($tab[1]), 'units' => "mm"});
 	} else {
@@ -84,25 +88,40 @@ foreach my $f ( @results ) {
 			my $nam;
 			if ($name=~/CM180/){ 
 				$nam=$name."_l".$idx;
+				$unit="kWh";
 			} elsif ($f->{"Type"} eq "RFXMeter") {
 				if ($f->{"SubType"} eq "RFXMeter counter") {
 					if ($idx==1) {$nam=$name."_last"; } else {$nam=$name."_counter";}
 				}
+			} elsif ($f->{"Type"} eq "Humidity") {
+			        $temp=$f->{"Humidity"};
+				$nam=$name;
+				$unit="%";
 			} else {
 				if ($te=~/,/) { $nam=$name.'_'.$unit; } else {$nam=$name;}
 			}
+			$temp=~s/\s//g;
 			$nam=~s/\s/_/g;
 			$nam=~s/\//_/g;
+			$nam=~s/\ /_/g;
+			$nam=~s/\./_/g;
 			$nam=~s/%/P/g;
-			print "L2 $nam $nam/$temp/$unit\n";
-			push(@{$feed->{'datastreams'}}, {'id' => $nam, 'current_value' => scalar($temp), 'units' => $unit});
-		}
+			#if (length($nam)>30) {$nam=substr($nam,0,30);}
+			if ($list{$nam}) {
+				print "DUPL $nam $nam/$temp/$unit\n";
+			} else {
+				print "$nam $nam/$temp/$unit\n";
+				$list{$nam}=1;
+				push(@{$feed->{'datastreams'}}, {'id' => $nam, 'current_value' => scalar($temp), 'units' => $unit});
+			}
+			}
 	}
 	if ($f->{"BatteryLevel"}<100) {
         	my $bl=$f->{"BatteryLevel"};
 		$bl=sprintf "%2.0f", $bl;
 		my $nam=$name."_Battery";
 		$nam=~s/\s/_/;
+		$bl=~s/\s//;
 		print "$nam/$bl/%\n";
 		push(@{$feed->{'datastreams'}}, {'id' => $nam, 'current_value' => $bl, 'units' => '%'});
 	
@@ -113,7 +132,7 @@ foreach my $f ( @results ) {
 #print Dumper $feed;
  
 # Get the temperature of the core
-my $temp = read_file('/sys/devices/platform/sunxi-i2c.0/i2c-0/0-0034/temp1_input') / 1000;
+my $temp = read_file('/sys/devices/virtual/thermal/thermal_zone0/temp') / 1000;
 $temp=sprintf "%2.3f", $temp;
 push(@{$feed->{'datastreams'}}, {'id' => 'pi-core', 'current_value' => $temp});
 
