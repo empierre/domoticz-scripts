@@ -14,8 +14,8 @@ PM10 = 'PPDNS42PM10'
 
 --WU Settings
 baseurl = "http://weatherstation.wunderground.com/weatherstation/updateweatherstation.php?"
-ID = "ILEDEFRA58"
-PASSWORD = "Wu14Gr12"
+ID = ""
+PASSWORD = ""
 
 local function CelciusToFarenheit(C)
    return (C * (9/5)) + 32
