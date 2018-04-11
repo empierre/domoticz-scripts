@@ -35,7 +35,7 @@ my $decoded = $xml->XMLin( $json );
 # you'll get this (it'll print out); comment this when done.
 #print Dumper $decoded;
 
-foreach my $f ( @{$decoded->{node}} ) {
+foreach my $f ( @{$decoded->{root}{node}} ) {
   if ($f->{"agglomeration"}eq $agglomeration) {
 	print $f->{"valeurIndice"} . " " . $f->{"SousIndiceO3"} . " " . $f->{"SousIndiceNO2"} ." ". $f->{"SousIndiceSO2"} . " " .$f->{"SousIndicePM10"} . "\n";
 	my $payload=$f->{"valeurIndice"};
