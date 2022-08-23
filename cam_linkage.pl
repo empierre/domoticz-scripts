@@ -1,4 +1,5 @@
 #!/usr/bin/perl -w
+# set parameters for the cam
 #use strict;
 #use warnings;
 use XML::Mini::Document;

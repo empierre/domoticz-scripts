@@ -14,8 +14,8 @@ use Time::Piece;
 use feature     qw< unicode_strings >;
 
 
-my $COSM_API_KEY = '';
-my $COSM_FEED = "";
+my $COSM_API_KEY = 'CHANGE_E';
+my $COSM_FEED = CHANGE_ME"";
 my $feed = { 'version' => '1.0.0', 'datastreams' => [] };
 my %list={};
  

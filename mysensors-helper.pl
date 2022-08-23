@@ -1,4 +1,5 @@
 #!/usr/bin/perl -w
+#Check if process is stalled to relaunch a new one
 use File::stat;
 use POSIX ();
 use Time::localtime;
