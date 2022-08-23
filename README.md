@@ -3,7 +3,7 @@ domoticz
 
 Bunch of Perl scripts for Domoticz
 - DOMO/REST Gateway: please see MyDomoAtHome repositoy
-- cam_*: scripts to manage Foscam HD through the new API
+- cam_*: scripts to manage Foscam HD through the new API v2
 - cosmodom4.pl: extract values from Domoticz to push them to Cosm/Xively see http://domoticz.com/wiki/Perl_for_Domoticz#Pachube_.2F_Cosm_.2F_Xively
 - gcal4.sh / script_time_gcal4.lua: Google Calendar for Domoticz, see http://domoticz.com/wiki/Interacting_with_Google_Calendar
 - ping_by_ip.pl: externalized ping for Domoticz to use within CRON, see http://domoticz.com/wiki/Perl_for_Domoticz#Ping_several_machines
